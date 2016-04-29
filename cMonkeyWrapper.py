@@ -33,7 +33,7 @@ class cMonkeyWrapper:
                  meme_upstream=False, weeder_upstream=False,
                  weeder_3pUTR=False, tfbs_db=False,
                  pita_3pUTR=False, targetscan_3pUTR=False,
-                 geneConv=False):
+                 geneConv=False,promoterSeq='NA',p3utrSeq='NA'):
         # What has been run on this cMonkey run, legend = [0: not run, 1: run]
         de_novo_method_upstream = None
         de_novo_method_3pUTR = None
@@ -79,7 +79,7 @@ class cMonkeyWrapper:
                 stdout.write('.')
             stdout.flush()
         # Now read in the upstream sequences
-        upstreamSeqsFile = gzip.open('seqs/promoterSeqs_Homo_sapiens_gs_fp.csv.gz','rb')
+        upstreamSeqsFile = gzip.open(promoterSeq,'rb')
         upstreamSeqsFile.readline() # Skip header
         self.seqsUpstream = {}
         for line in upstreamSeqsFile.readlines():
@@ -93,7 +93,7 @@ class cMonkeyWrapper:
                         self.seqsUpstream[gene] = splitUp[1].strip('"')
         upstreamSeqsFile.close()
         # Now read in the 3' UTR sequences
-        p3utrSeqsFile = gzip.open('seqs/p3utrSeqs_Homo_sapiens_gs.csv.gz','rb')
+        p3utrSeqsFile = gzip.open(p3utrSeq,'rb')
         p3utrSeqsFile.readline() # Skip header
         self.seqs3pUTR = {}
 
