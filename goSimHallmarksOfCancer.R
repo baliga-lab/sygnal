@@ -1,3 +1,4 @@
+#!/usr/bin/env Rscript
 suppressMessages(library(GOSim))
 suppressMessages(library(getopt))
 
