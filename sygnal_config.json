@@ -1,4 +1,10 @@
 {
+    "subsets": [ "all"
+            ],
+
+    "subsets_pos": { "all": [0, 422]
+            },
+
     "max-evalue": 10.0,
     "rho-cut": 0.3,
     "pvalue-cut": 0.05,
@@ -11,23 +17,57 @@
     "ratios-file": "../gbmTCGA_exprMat_medianFiltered.tsv",
     "all-ratios-file": "expression/gbmTCGA_exprMat.tsv",
     "mirna-fasta-file": "miRNA/hsa.mature.fa",
+    "rand_pssms_dir": "randPSSMs",
+    "promoterSeq": "seqs/promoterSeqs_Homo_sapiens_gs.csv.gz",
+    "p3utrSeq": "seqs/p3utrSeqs_Homo_sapiens_gs.csv.gz",
 
     "replication-dataset-names": ["French", "REMBRANDT", "GSE7696"],
 
-    "meme": [ { "seqtype": "upstream",
-                "nmotifs": 2,
-                "motif-widths": [6, 12],
-                "revcomp": "true"
-            } ],
+    "meme":  { "upstream": {
+                    "nmotifs": 2,
+                    "motif-widths": [6, 12],
+                    "revcomp": "True",
+                    "bgfile": "seqs/bgFile.meme"
+                }
+            },
+    
+    "weeder": { "upstream": {
+                    "bgfile": "HS",
+                    "size": "small",
+                    "enriched": "T50",
+                    "revcomp": "True"
+                },
+                "3pUTR": {
+                    "bgfile": "HS3P",
+                    "size": "small",
+                    "enriched": "T50",
+                    "revcomp": "False"
+                }
+            },
 
-    "tomtom": [ {
-            "seqtype": "upstream",
-            "motif-files": ["motifs/jasparCoreVertebrata_redundant.json",
+    "tomtom": { "upstream":
+                {
+                    "motif-files": ["motifs/jasparCoreVertebrata_redundant.json",
                             "motifs/transfac_2012.1_PSSMs_vertabrate.json",
                             "motifs/uniprobePSSMsNonRedundant.json",
                             "motifs/selexPSSMsNonRedundant.json"]
-            } ],
+                }
+            },
+    
+    "tfExpansion": { "tfs": "TF/humanTFs_All.csv",
+                     "tfFamilies": "TF/tfFamilies.csv"
+            },
 
+    "mirvestigator": { "seedModel": [6,7,8],
+                       "minor": "True",
+                       "minor": "True",
+                       "p5": "True",
+                       "p3": "True",
+                       "wobble": "False",
+                       "wobbleCut": 0.25,
+                       "species": "hsa"
+    },
+    
     "postprocessing-result-file": "postProcessed_gbmTCGA_pita.csv",
     "first-principal-comps-result-file": "biclusterFirstPrincComponents.csv"
 }
