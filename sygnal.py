@@ -1241,7 +1241,7 @@ def __run_mirvestigator_3putr(cfg, c1):
                             wobbleCut=cfg['mirvestigator']['wobbleCut'],
                             baseDir='output',
                             species=cfg['mirvestigator']['species'])
-    with open(pkl_path, 'wb') as outfile:
+        with open(pkl_path, 'wb') as outfile:
             cPickle.dump(m2m, outfile)
     else:
         print 'Loading precached miRNA matches...'

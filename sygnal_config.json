@@ -18,7 +18,7 @@
     "all-ratios-file": "expression/gbmTCGA_exprMat.tsv",
     "mirna-fasta-file": "miRNA/hsa.mature.fa",
     "rand_pssms_dir": "randPSSMs",
-    "promoterSeq": "seqs/promoterSeqs_Homo_sapiens_gs.csv.gz",
+    "promoterSeq": "seqs/promoterSeqs_Homo_sapiens_gs_fp.csv.gz",
     "p3utrSeq": "seqs/p3utrSeqs_Homo_sapiens_gs.csv.gz",
     "gene_conv": "extras/entrez2ucsc.csv",
 
