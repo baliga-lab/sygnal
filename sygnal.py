@@ -1428,7 +1428,7 @@ def __make_functional_enrichment(cfg, c1):
     # Note that these are external to the project and have hard-coded paths !!!
     if not os.path.exists(cfg.outdir_path('biclusterEnrichment_GOBP.csv')):
         print 'Run functional enrichment...'
-        ret = subprocess.check_call("./enrichment.R -o "+cfg['outdir']+" -c "+cfg['gene_conv'],
+        ret = subprocess.check_call("./enrichment.R -o "+cfg['outdir'], # +" -c "+cfg['gene_conv']
                                     stderr=subprocess.STDOUT, shell=True)
         if ret == 1:
             raise Exception('could not run functional enrichment')
