@@ -20,6 +20,7 @@
     "rand_pssms_dir": "randPSSMs",
     "promoterSeq": "seqs/promoterSeqs_Homo_sapiens_gs.csv.gz",
     "p3utrSeq": "seqs/p3utrSeqs_Homo_sapiens_gs.csv.gz",
+    "gene_conv": "extras/entrez2ucsc.csv",
 
     "replication-dataset-names": ["French", "REMBRANDT", "GSE7696"],
 

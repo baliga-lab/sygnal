@@ -135,7 +135,7 @@ def weeder(bicluster, seqfile, bgfile, size, enriched, revcomp):
     weeder_args = "%s %s %s %s" % (seqfile, bgfile, size, enriched)
     if revcomp:
         weeder_args += ' S'
-    errout = open('tmp/weeder/stderr.out','w')
+    errout = open(cfg['tmpdir']+'/weeder/stderr.out','w')
     weeder_proc = Popen("weederlauncher %s" % weeder_args, shell=True, stdout=PIPE, stderr=errout)
     output = weeder_proc.communicate()
 
@@ -252,9 +252,9 @@ def tomtom(num, dist_meth='ed', q_thresh=1, min_overlap=6):
     args = '-dist %s -o tmp/tomtom_out -text -thresh %d -min-overlap %d -verbosity 1 tmp/query%d.tomtom tmp/target%d.tomtom' % (dist_meth, q_thresh, min_overlap, num, num)
     print args
 
-    with open('tmp/stderr_%d.out' % num,'w') as errout:
+    with open(cfg['tmpdir']+'/stderr_%d.out' % num,'w') as errout:
         tomtom_proc = Popen("tomtom %s" % args, shell=True, stdout=PIPE, stderr=errout)
-        with open('tmp/tomtom_out/tomtom%d.out' % num, 'w') as outfile:
+        with open(cfg['tmpdir']+'/tomtom_out/tomtom%d.out' % num, 'w') as outfile:
             output = tomtom_proc.communicate()[0]
             outfile.write(output)
 
@@ -827,7 +827,7 @@ def __get_cluster_eigengenes(cfg, c1):
     if not os.path.exists(cluster_eigengenes_path):
         ret = subprocess.check_call(['./getEigengene.R',
                                      '-r', cfg['ratios-file'],
-                                     '-o', 'output'],
+                                     '-o', cfg['outdir']],
                                     stderr=subprocess.STDOUT)
         if ret == 1:
             print "could not create Eigengenes"
@@ -1397,7 +1397,8 @@ def __make_permuted_pvalues(cfg, c1):
     if not os.path.exists(pvalues_path):
         print 'Calculating FPC permuted p-values...'
         ret = subprocess.check_call(['./permutedResidualPvalues_permAll_mc.R',
-                                     '-b', '..'],
+                                     '-o', cfg['outdir'],
+                                     '-r', cfg['ratios-file']],
                                     stderr=subprocess.STDOUT)
         if ret == 1:
             print "error in calling R script."
@@ -1427,7 +1428,7 @@ def __make_functional_enrichment(cfg, c1):
     # Note that these are external to the project and have hard-coded paths !!!
     if not os.path.exists(cfg.outdir_path('biclusterEnrichment_GOBP.csv')):
         print 'Run functional enrichment...'
-        ret = subprocess.check_call("cd funcEnrichment && Rscript enrichment.R -o %s" % cfg.outdir,
+        ret = subprocess.check_call("./enrichment.R -o "+cfg['outdir']+" -c "+cfg['gene_conv'],
                                     stderr=subprocess.STDOUT, shell=True)
         if ret == 1:
             raise Exception('could not run functional enrichment')
@@ -1454,7 +1455,7 @@ def __make_go_term_semantic_similarity(cfg, c1):
     #################################################################
     if not os.path.exists(cfg.outdir_path('jiangConrath_hallmarks.csv')):
         print 'Run semantic similarity...'
-        ret = subprocess.check_call("cd funcEnrichment && Rscript goSimHallmarksOfCancer.R -o %s" % cfg.outdir,
+        ret = subprocess.check_call("./goSimHallmarksOfCancer.R -o %s" % cfg.outdir,
                                     stderr=subprocess.STDOUT, shell=True)
         if ret == 1:
             raise Exception('could not run semantic similarity')
