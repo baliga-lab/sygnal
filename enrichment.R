@@ -6,32 +6,21 @@ suppressMessages(library('getopt'))
 # read command line arguments
 spec = matrix(c(
   'outdir', 'o', 1, 'character',
-  'gene_conv', 'c', 1, 'character',
   'help', 'h', 0, 'logical'
 ), byrow=TRUE, ncol=4)
 
 opt <- getopt(spec)
 
-if (is.null(opt$outdir) || is.null(opt$gene_conv) || !is.null(opt$help)) {
+if (is.null(opt$outdir) || !is.null(opt$help)) {
   cat(getopt(spec, usage=TRUE))
   q(status=1)
-}
-
-# Make a map of Entrez IDs to UCSC transcript IDs
-d1 = read.csv(opt$gene_conv,header=F)
-ucsc2entrez = list()
-for(j in 1:length(d1[,1])) {
-    tmp = strsplit(as.character(d1[j,2]),split=';')[[1]]
-    for(k in tmp) {
-        ucsc2entrez[[as.character(k)]] = as.character(d1[j,1])
-    }
 }
 
 # Automated for all clusters
 d1 = read.csv(paste(opt$outdir,'/cluster.members.genes.txt',sep=''),header=F)
 biclustMembership = list()
 for(j in 1:length(d1[,1])) {
-    biclustMembership[[j]] = as.character(unlist(ucsc2entrez[strsplit(as.character(d1[j,]),split=' ')[[1]][-1]]))
+    biclustMembership[[j]] = strsplit(as.character(d1[j,]),split=' ')[[1]][-1]
 }
 xx <- annFUN.org("BP", mapping = "org.Hs.eg.db", ID = "symbol")
 geneNames <- intersect(unique(unlist(biclustMembership)), unique(unlist(xx)))
