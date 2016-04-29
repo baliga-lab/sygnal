@@ -174,5 +174,5 @@ m1 = do.call(rbind, mclapply(1:ks, function(k) {
 outNames = c('bicluster','bicluster','n.rows','n.cols','orig.resid','avg.perm.resid','perm.p','orig.resid.norm','avg.norm.perm.resid','norm.perm.p','pc1.var.exp','avg.pc1.var.exp','pc1.perm.p')
 colnames(m1) = outNames
 outfile <- paste(opt$outdir, 'residualPermutedPvalues_permAll.csv', sep='/')
-write.csv(m1,file=outfile,sep='/')
+write.csv(m1,file=outfile)
 
