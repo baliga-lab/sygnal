@@ -1,10 +1,4 @@
 {
-    "subsets": [ "all"
-            ],
-
-    "subsets_pos": { "all": [0, 422]
-            },
-
     "max-evalue": 10.0,
     "rho-cut": 0.3,
     "pvalue-cut": 0.05,
@@ -12,14 +6,17 @@
     "leo-nb-atob": 0.5,
     "mlogp-m-atob": 0.05,
 
-    "synonyms-file": "../synonymThesaurus.csv.gz",
+    "run-neo": false,
+
+    "tumors": ["ACC", "BLCA", "BRCA", "CESC", "CHOL", "COAD", "DLBC", "ESCA", "GBM", "HNSC", "KICH", "KIRC", "KIRP", "LGG", "LIHC", "LUAD", "LUSC", "MESO", "OV", "PAAD", "PCPG", "PRAD", "READ", "SARC", "SKCM", "STAD", "TGCT", "THCA", "THYM", "UCEC", "UCS", "UVM"],
+    "synonyms-file": "/proj/omics4tb/cplaisier/cMonkey/panCancer/commonFiles/synonymsThesaurus.csv.gz",
     "phenotypes-file": "extras/phenotypes.csv",
-    "ratios-file": "../gbmTCGA_exprMat_medianFiltered.tsv",
-    "all-ratios-file": "expression/gbmTCGA_exprMat.tsv",
+    "ratios-file": ["/proj/omics4tb/cplaisier/cMonkey/panCancer/exprs/", "_RNAseq_medianFiltered.tsv"],
+    "all-ratios-file": ["/proj/omics4tb/cplaisier/cMonkey/panCancer/exprs_all/", "_RNAseq.csv"],
     "mirna-fasta-file": "miRNA/hsa.mature.fa",
     "rand_pssms_dir": "randPSSMs",
-    "promoterSeq": "seqs/promoterSeqs_Homo_sapiens_gs_fp.csv.gz",
-    "p3utrSeq": "seqs/p3utrSeqs_Homo_sapiens_gs.csv.gz",
+    "promoterSeq": "seqs/promoterSeqs_Homo_sapiens.csv.gz",
+    "p3utrSeq": "seqs/p3utrSeqs_Homo_sapiens.csv.gz",
     "gene_conv": "extras/entrez2ucsc.csv",
 
     "replication-dataset-names": ["French", "REMBRANDT", "GSE7696"],
@@ -69,6 +66,6 @@
                        "species": "hsa"
     },
     
-    "postprocessing-result-file": "postProcessed_gbmTCGA_pita.csv",
-    "first-principal-comps-result-file": "biclusterFirstPrincComponents.csv"
+    "postprocessing-result-file": "postProcessed_ACC_test_pita.csv",
+    "first-principal-comps-result-file": ["biclusterFirstPrincComponents_", ".csv"]
 }

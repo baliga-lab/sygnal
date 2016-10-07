@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #################################################################
-# @Program: offYerBackV2.py                                     #
+# @Program: sygnal.py - branch panCancer                        #
 # @Version: 2                                                   #
 # @Author: Chris Plaisier                                       #
 # @Sponsored by:                                                #
@@ -385,7 +385,7 @@ def read_cmonkey_run(cfg, gene_conv):
                             targetscan_3pUTR=False,
                             promoterSeq=cfg['promoterSeq'],
                             p3utrSeq=cfg['p3utrSeq'],
-                            geneConv=gene_conv)
+                            geneConv=False)
 
         with open(output_path, 'wb') as pklFile:
             cPickle.dump(c1, pklFile)
@@ -774,38 +774,43 @@ def post_process(cluster_num):
     conditions = g_ratios[genes[0]].keys()
     matrix = [[g_ratios[gene][condition] for condition in conditions] for gene in genes]
 
-    # Get first principal component variance explained
-    fpc = bicluster.attributes['pc1']
+    # For each tumor
+    for tumor in g_ratios.keys():
+        # Get first principal component variance explained
+        fpc = bicluster.attributes[tumor+'_pc1']
 
-    # Corrleation with patient traits
-    cleanNames = dict(zip([clean_name(i) for i in conditions], conditions))
-    cond2 = set(cleanNames.keys()).intersection(g_phenotypes['SURVIVAL'].keys())
-    pc1_1 = [fpc[cleanNames[i]] for i in cond2]
+        # Corrleation with patient traits
+        cond2 = set(g_ratios[tumor].keys()).intersection(g_phenotypes[tumor]['days_to_death'].keys())
+        cleanNames = dict(zip([clean_name(i) for i in cond2], cond2))
+        pc1_1 = [fpc[cleanNames[i]] for i in cond2]
 
-    for phenotype in ['AGE', 'SEX.bi', 'chemo_therapy', 'radiation_therapy']:
-        p1_1 = [g_phenotypes[phenotype][i] for i in cond2]
-        cor1 = correlation(pc1_1, p1_1)
-        attributes[phenotype] = dict(zip(['rho', 'pValue'], cor1))
+        for phenotype in ['B.cells.naive','B.cells.memory','Plasma.cells','T.cells.CD8','T.cells.CD4.naive','T.cells.CD4.memory.resting','T.cells.CD4.memory.activated','T.cells.follicular.helper','T.cells.regulatory..Tregs.','T.cells.gamma.delta','NK.cells.resting','NK.cells.activated','Monocytes','Macrophages.M0','Macrophages.M1','Macrophages.M2','Dendritic.cells.resting','Dendritic.cells.activated','Mast.cells.resting','Mast.cells.activated','Eosinophils','Neutrophils','TotalLeukocyte']:
+            p1_1 = [g_phenotypes[phenotype][i] for i in cond2]
+            cor1 = correlation(pc1_1, p1_1)
+            attributes[tumor+'_'+phenotype] = dict(zip(['rho', 'pValue'], cor1))
 
-    # Association of bicluster expression with patient survival
-    surv = [g_phenotypes['SURVIVAL'][i] for i in cond2]
-    dead = [g_phenotypes['DEAD'][i] for i in cond2]
-    age = [g_phenotypes['AGE'][i] for i in cond2]
-    s1 = survival(surv, dead, pc1_1, age)
-    attributes['Survival'] = dict(zip(['z', 'pValue'], s1[0]))
-    attributes['Survival.AGE'] = dict(zip(['z', 'pValue'], s1[1]))
+            # Association of bicluster expression with patient survival
+            surv = [g_phenotypes['days_to_death'][i] for i in cond2]
+            binDead = lambda x: 1 if x=='DEAD' else 0
+            dead = [binDead(g_phenotypes['vital_status'][i]) for i in cond2]
+            age = [g_phenotypes['age_at_initial_pathologic_diagnosis'][i] for i in cond2]
+            s1 = survival(surv, dead, pc1_1, age)
+            attributes[tumor+'_Survival'] = dict(zip(['z', 'pValue'], s1[0]))
+            attributes[tumor+'_Survival.AGE'] = dict(zip(['z', 'pValue'], s1[1]))
 
     return attributes
 
 
 def __read_ratios(cfg, c1):
-    print "reading ratios matrix"
-    with open(cfg['ratios-file'], 'r') as infile:
-        conditions = [i.strip('"') for i in infile.readline().strip().split('\t')]
-        ratios = {}
-        for line in infile:
-            comps = line.strip().split('\t')
-            ratios[comps[0].strip('"')] = dict(zip(conditions, comps[1:]))
+    ratios = {}
+    for tumor in cfg['tumors']:
+        ratios[tumor] = {}
+        print "reading ratios matrix"
+        with open(cfg['ratios-file'][0]+tumor+cfg['ratios-file'][1], 'r') as infile:
+            conditions = [i.strip('"') for i in infile.readline().strip().split('\t')]
+            for line in infile:
+                comps = line.strip().split('\t')
+                ratios[tumor][comps[0].strip('"')] = dict(zip(conditions, comps[1:]))
 
     print "dump cluster row members"
 
@@ -821,40 +826,44 @@ def __read_ratios(cfg, c1):
 
 
 def __get_cluster_eigengenes(cfg, c1):
-    # Calculate bicluster eigengene (first principal components)
-    print "compute bicluster eigengenes"
-    cluster_eigengenes_path = cfg.outdir_path('biclusterEigengenes.csv')
-    if not os.path.exists(cluster_eigengenes_path):
-        ret = subprocess.check_call(['./getEigengene.R',
-                                     '-r', cfg['ratios-file'],
-                                     '-o', cfg['outdir']],
-                                    stderr=subprocess.STDOUT)
-        if ret == 1:
-            print "could not create Eigengenes"
-            exit(1)
+    # For each tumor type
+    for tumor in cfg['tumors']:
+        # Calculate bicluster eigengene (first principal components)
+        print "compute bicluster eigengenes"
+        cluster_eigengenes_path = cfg.outdir_path('biclusterEigengenes_'+tumor+'.csv')
+        if not os.path.exists(cluster_eigengenes_path):
+            ret = subprocess.check_call(['./getEigengene.R',
+                                         '-r', cfg['ratios-file'][0]+tumor+cfg['ratios-file'][1],
+                                         '-o', cfg['outdir']],
+                                         '-t', tumor,
+                                        stderr=subprocess.STDOUT)
+            if ret == 1:
+                print "could not create Eigengenes"
+                exit(1)
 
-    # Read in bicluster eigengene
-    print "read bicluster eigengenes"
-    with open(cluster_eigengenes_path, 'r') as infile:
-        patients = [i.strip('"') for i in infile.readline().strip().split(',')]
-        patients.pop(0) # Get rid of rowname placeholder
+        # Read in bicluster eigengene
+        print "read bicluster eigengenes"
+        with open(cluster_eigengenes_path, 'r') as infile:
+            patients = [i.strip('"') for i in infile.readline().strip().split(',')]
+            patients.pop(0) # Get rid of rowname placeholder
 
-        for line in infile:
-            eigengene = line.strip().split(',')
-            cluster_num = int(eigengene.pop(0).strip('"'))
-            bicluster = c1.biclusters[cluster_num]
-            bicluster.add_attribute('pc1', dict(zip(patients, eigengene)))
+            for line in infile:
+                eigengene = line.strip().split(',')
+                cluster_num = int(eigengene.pop(0).strip('"'))
+                bicluster = c1.biclusters[cluster_num]
+                bicluster.add_attribute(tumor+'_pc1', dict(zip(patients, eigengene)))
 
 
 def __get_cluster_variance_explained(cfg, c1):
-    print "read bicluster variance explained"
-    with open(cfg.outdir_path('biclusterVarianceExplained.csv'), 'r') as infile:
-        infile.readline() # Get rid of header
-        for line in infile:
-            varExplained = line.strip().split(',')
-            cluster_num = int(varExplained.pop(0).strip('"'))
-            bicluster = c1.biclusters[cluster_num]
-            bicluster.add_attribute('pc1.var.exp', varExplained[0])
+    for tumor in cfg['tumors']:
+        print "read bicluster variance explained"
+        with open(cfg.outdir_path('biclusterVarianceExplained_'+tumor+'.csv'), 'r') as infile:
+            infile.readline() # Get rid of header
+            for line in infile:
+                varExplained = line.strip().split(',')
+                cluster_num = int(varExplained.pop(0).strip('"'))
+                bicluster = c1.biclusters[cluster_num]
+                bicluster.add_attribute(tumor+'pc1.var.exp', varExplained[0])
 
 
 def __get_phenotype_info(cfg, c1):
@@ -863,14 +872,16 @@ def __get_phenotype_info(cfg, c1):
     phenotypes = {}
     with open(cfg['phenotypes-file'], 'r') as infile:
         ids = infile.readline().strip().split(',')[1:]
-        for i in ids:
-            phenotypes[i] = {}
+        for tumor in cfg['tumors']:
+            phenotypes[tumor] = {}
+            for i in ids:
+                phenotypes[tumor][i] = {}
 
         for line in infile:
             splitUp = line.strip().split(',')
-            phenotypes[splitUp[0]] = {}
+            #phenotypes[splitUp[1]] = {}
             for i in range(len(ids)):
-                phenotypes[ids[i]][splitUp[0]] = splitUp[i+1]
+                phenotypes[splitUp[1]][ids[i]][splitUp[0]] = splitUp[i+1]
     return phenotypes
 
 
@@ -1125,17 +1136,18 @@ def __expand_and_correlate_tfbsdb_tfs(c1, tf_name2entrezid, tf_families, exp_dat
 
 def __write_first_principal_components(cfg, c1):
     print 'Write biclusterFirstPrincComponents.csv...'
-    # Get all first principal components for each bicluster
-    fpcWrite = []
-    conditions = c1.biclusters[1].attributes['pc1'].keys()
-    for i in sorted(c1.biclusters.keys()):
-        pc1 = c1.biclusters[i].attributes['pc1']
-        fpcWrite.append(str(i)+','+','.join([str(pc1[j]) for j in conditions]))
+    for tumor in cfg['tumors']:
+        # Get all first principal components for each bicluster
+        fpcWrite = []
+        conditions = c1.biclusters[1].attributes[tumor+'_pc1'].keys()
+        for i in sorted(c1.biclusters.keys()):
+            pc1 = c1.biclusters[i].attributes[tumor+'_pc1']
+            fpcWrite.append(str(i)+','+','.join([str(pc1[j]) for j in conditions]))
 
-    # Dump out file
-    with open(cfg.outdir_path(cfg["first-principal-comps-result-file"]), 'w') as outfile:
-        outfile.write('Bicluster,'+','.join([j.strip() for j in conditions])+'\n')
-        outfile.write('\n'.join(fpcWrite))
+        # Dump out file
+        with open(cfg.outdir_path(cfg["first-principal-comps-result-file"][0]+tumor+cfg["first-principal-comps-result-file"][1]), 'w') as outfile:
+            outfile.write('Bicluster,'+','.join([j.strip() for j in conditions])+'\n')
+            outfile.write('\n'.join(fpcWrite))
     print 'Done.\n'
 
 
@@ -1476,22 +1488,22 @@ def __make_go_term_semantic_similarity(cfg, c1):
 def perform_postprocessing(cfg, c1, entrez2id, mirna_ids):
     pkl_path = cfg.outdir_path('c1_postProc.pkl')
     if not os.path.exists(pkl_path):
-        ratios = __read_ratios(cfg, c1)
-        __get_cluster_eigengenes(cfg, c1)
-        __get_cluster_variance_explained(cfg, c1)
-        phenotypes = __get_phenotype_info(cfg, c1)
-        __do_postprocess(cfg.outdir_path('postProcessed.pkl'), c1, ratios, phenotypes)
-        __tomtom_upstream_motifs(cfg)
-        tf_name2entrezid, tf_families = __expand_tf_factor_list(entrez2id)
-        exp_data, all_names = __correlate_tfs_with_cluster_eigengenes(cfg, c1)
+        ratios = __read_ratios(cfg, c1) # Updated for tumors
+        __get_cluster_eigengenes(cfg, c1) # Updated for tumors
+        __get_cluster_variance_explained(cfg, c1) # Updated for tumors
+        phenotypes = __get_phenotype_info(cfg, c1) # Updated for tumors
+        __do_postprocess(cfg.outdir_path('postProcessed.pkl'), c1, ratios, phenotypes) # Updated for tumors
+        __tomtom_upstream_motifs(cfg) # No updates needed
+        tf_name2entrezid, tf_families = __expand_tf_factor_list(entrez2id) # No updates needed
+        exp_data, all_names = __correlate_tfs_with_cluster_eigengenes(cfg, c1) # TODO
         __expand_and_correlate_tfbsdb_tfs(c1, tf_name2entrezid, tf_families,
-                                          exp_data, all_names)
-        __write_first_principal_components(cfg, c1)
+                                          exp_data, all_names) # TODO
+        __write_first_principal_components(cfg, c1) # Updated for tumors
         __get_permuted_pvalues_for_upstream_meme_motifs(cfg, c1)
         __run_mirvestigator_3putr(cfg, c1)
         __convert_mirvestigator_3putr_results(cfg, c1, mirna_ids)
-        __make_replication_pvalues(cfg, c1)
-        __read_replication_pvalues(cfg, c1)
+        #__make_replication_pvalues(cfg, c1)
+        #__read_replication_pvalues(cfg, c1)
         __make_permuted_pvalues(cfg, c1)
         __make_functional_enrichment(cfg, c1)
         __make_go_term_semantic_similarity(cfg, c1)
@@ -1903,12 +1915,10 @@ def write_final_result(cfg, c1, mirna_ids_rev):
          ['3pUTR.WEEDER Motif1 E-Value', '3pUTR.WEEDER Motif1 Perm. P-Value', '3pUTR.WEEDER Motif1 Perm. P-Value (All)', '3pUTR.WEEDER Motif1 Consensus', '3pUTR.WEEDER Motif1 Matches', '3pUTR.WEEDER Motif1 Model'] + \
          ['3pUTR.WEEDER Motif2 E-Value', '3pUTR.WEEDER Motif2 Perm. P-Value', '3pUTR.WEEDER Motif2 Perm. P-Value (All)', '3pUTR.WEEDER Motif2 Consensus', '3pUTR.WEEDER Motif2 Matches', '3pUTR.WEEDER Motif2 Model'] + \
          ['3pUTR_pita.miRNAs', '3pUTR_pita.percTargets', '3pUTR_pita.pValue'] + \
-         ['3pUTR_targetScan.miRNAs', '3pUTR_targetScan.percTargets', '3pUTR_targetScan.pValue'] + \
-         ['Correspondent.TFs', 'Correspondent.miRNAs'] + \
-         ['Age', 'Age.p', 'Sex', 'Sex.p', 'Chemotherapy', 'Chemotherapy.p', 'RadiationTherapy', 'RadiationTherapy.p', 'Survival', 'Survival.p', 'Survial.covAge', 'Survival.covAge.p'] + \
-         ['French_pc1.var.exp','French_avg.pc1.var.exp','French_pc1.perm.p','French_survival','French_survival.p','French_survival.age','French_survival.age.p', 'French_all_pc1.var.exp','French_all_avg.pc1.var.exp','French_all_pc1.perm.p','French_all_survival','French_all_survival.p','French_all_survival.age','French_all_survival.age.p'] + \
-         ['REMBRANDT_pc1.var.exp','REMBRANDT_avg.pc1.var.exp','REMBRANDT_pc1.perm.p','REMBRANDT_survival','REMBRANDT_survival.p','REMBRANDT_survival.age','REMBRANDT_survival.age.p', 'REMBRANDT_all_pc1.var.exp','REMBRANDT_all_avg.pc1.var.exp','REMBRANDT_all_pc1.perm.p','REMBRANDT_all_survival','REMBRANDT_all_survival.p','REMBRANDT_all_survival.age','REMBRANDT_all_survival.age.p'] + \
-         ['GSE7696_pc1.var.exp','GSE7696_avg.pc1.var.exp','GSE7696_pc1.perm.p','GSE7696_survival','GSE7696_survival.p','GSE7696_survival.age','GSE7696_survival.age.p'] + \
+         ['3pUTR_targetScan.miRNAs', '3pUTR_targetScan.percTargets', '3pUTR_targetScan.pValue']
+        if cfg['run_neo']:
+            header += ['Correspondent.TFs', 'Correspondent.miRNAs']
+        header += ['Age', 'Age.p', 'Sex', 'Sex.p', 'Chemotherapy', 'Chemotherapy.p', 'RadiationTherapy', 'RadiationTherapy.p', 'Survival', 'Survival.p', 'Survial.covAge', 'Survival.covAge.p'] + \
          ['GO_Term_BP'] + \
          [i.strip() for i in hallmarksOfCancer]
         postFinal.write(','.join(header)+'\n'+'\n'.join([','.join(i) for i in postOut]))
@@ -1927,7 +1937,9 @@ if __name__ == '__main__':
     mirna_ids, mirna_ids_rev = miRNA_mappings(cfg)
     c1 = compute_additional_info(cfg, mirna_ids, gene_conv)
     c1 = perform_postprocessing(cfg, c1, entrez2id, mirna_ids)
-    run_neo(cfg)
-    causal_summary = write_neo_summary(cfg)
-    add_correspondent_regulators(cfg, c1, causal_summary, mirna_ids_rev)
+    # Run neo only if True
+    if cfg['run_neo']:
+        run_neo(cfg)
+        causal_summary = write_neo_summary(cfg)
+        add_correspondent_regulators(cfg, c1, causal_summary, mirna_ids_rev)
     write_final_result(cfg, c1, mirna_ids_rev)
