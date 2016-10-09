@@ -15,7 +15,7 @@
 # If this program is used in your analysis please mention who   #
 # built it. Thanks. :-)                                         #
 #                                                               #
-# Copyrighted by Chris Plaisier  5/21/2012                      #
+# Copyrighted by Chris Plaisier  10/8/2016                      #
 #################################################################
 
 from math import log10
@@ -40,7 +40,7 @@ import pssm as pssm_mod
 from miRvestigator import miRvestigator
 import utils
 import config
-
+import json
 
 #################################################################
 ## rpy2 integration                                            ##
@@ -292,8 +292,8 @@ def survival(survival, dead, pc1, age):
     surv = robj.r("""
 library('survival')
 surv <- function(s, dead, pc1, age) {
-  scph1 = summary(coxph(Surv(s,dead == 'DEAD') ~ pc1))
-  scph2 = summary(coxph(Surv(s,dead == 'DEAD') ~ pc1 + age))
+  scph1 = summary(coxph(Surv(s,dead == 'Dead') ~ pc1))
+  scph2 = summary(coxph(Surv(s,dead == 'Dead') ~ pc1 + age))
   c(scph1$coef[1,4], scph1$coef[1,5],  scph2$coef[1,4], scph2$coef[1,5])
 }
 """)
@@ -604,7 +604,7 @@ def __read_predictions(pred_path, pkl_path, genes_in_biclusters, manager):
         print 'loading predictions...'
         tmp_set = set()
         tmp_dict = {}
-        with gzip.open(pred_path, 'r') as infile:
+        """with gzip.open(pred_path, 'r') as infile:
             inLines = [i.strip().split(',') for i in infile.readlines() if i.strip()]
 
         for line in inLines:
@@ -613,7 +613,11 @@ def __read_predictions(pred_path, pkl_path, genes_in_biclusters, manager):
                 if not line[0] in tmp_dict:
                     tmp_dict[line[0]] = []
                 tmp_dict[line[0]].append(line[1])
-
+        """
+        inFile = open(pred_path,'r')
+        tmp_dict = json.load(inFile)
+        inFile.close()
+        tmp_set = tmp_dict.keys()
         with open(pkl_path,'wb') as pklFile:
             cPickle.dump(tmp_dict, pklFile)
             cPickle.dump(tmp_set, pklFile)
@@ -664,7 +668,7 @@ def compute_tfbsdb_enrichment(cfg, c1):
     """D. Upstream TFBS DB enrichment Analysis"""
     if not c1.tfbs_db:
         res1 = __compute_enrichment(c1, 'TFBS_DB', cfg.outdir_path('tfbs_db.pkl'),
-                                    'TF/tfbsDb_5000_gs.csv.gz',
+                                    cfg['tfbsdb'],
                                     'TF/tfbs_db.pkl')
 
         print 'Storing results...'
@@ -681,7 +685,7 @@ def compute_3pUTR_pita_set_enrichment(cfg, c1, mirna_ids):
     """E. 3' UTR PITA"""
     if not c1.pita_3pUTR:
         res1 = __compute_enrichment(c1, 'PITA', cfg.outdir_path('pita_3pUTR.pkl'),
-                                    'miRNA/pita_miRNA_sets_geneSymbol.csv.gz',
+                                    cfg['pita'],
                                     'miRNA/pita.pkl')
 
         print 'Storing results...'
@@ -703,7 +707,7 @@ def compute_3pUTR_targetscan_set_enrichment(cfg, c1, mirna_ids):
     """F. 3' UTR TargetScan"""
     if not c1.targetscan_3pUTR:
         res1 = __compute_enrichment(c1, 'TargetScan', cfg.outdir_path('targetscan_3pUTR.pkl'),
-                                    'miRNA/targetscan_miRNA_sets_geneSymbol.csv.gz',
+                                    cfg['targetscan'],
                                     'miRNA/targetScan.pkl')
 
         print 'Storing results...'
@@ -757,7 +761,7 @@ def post_process(cluster_num):
     global g_ratios, g_phenotypes
 
     def clean_name(name):
-        comps = name.split('.')
+        comps = name.split('-')
         return '%s.%s.%s' % (comps[0], comps[1], comps[2])
 
     attributes = {}
@@ -771,29 +775,31 @@ def post_process(cluster_num):
 
     # Get matrix of expression for genes
     genes = bicluster.genes
-    conditions = g_ratios[genes[0]].keys()
-    matrix = [[g_ratios[gene][condition] for condition in conditions] for gene in genes]
+    #conditions = g_ratios['ACC'][genes[0]].keys()
+    #matrix = [[g_ratios[gene][condition] for condition in conditions] for gene in genes]
 
     # For each tumor
     for tumor in g_ratios.keys():
         # Get first principal component variance explained
         fpc = bicluster.attributes[tumor+'_pc1']
-
         # Corrleation with patient traits
-        cond2 = set(g_ratios[tumor].keys()).intersection(g_phenotypes[tumor]['days_to_death'].keys())
-        cleanNames = dict(zip([clean_name(i) for i in cond2], cond2))
+        cond2 = set(g_ratios[tumor][g_ratios[tumor].keys()[0]].keys()).intersection(g_phenotypes[tumor]['days_to_death'].keys())
+        cond2 = set(cond2).intersection(['-'.join(i.split('.')) for i in fpc.keys()])
+        cleanNames = dict(zip(cond2, [clean_name(i) for i in cond2]))
         pc1_1 = [fpc[cleanNames[i]] for i in cond2]
 
         for phenotype in ['B.cells.naive','B.cells.memory','Plasma.cells','T.cells.CD8','T.cells.CD4.naive','T.cells.CD4.memory.resting','T.cells.CD4.memory.activated','T.cells.follicular.helper','T.cells.regulatory..Tregs.','T.cells.gamma.delta','NK.cells.resting','NK.cells.activated','Monocytes','Macrophages.M0','Macrophages.M1','Macrophages.M2','Dendritic.cells.resting','Dendritic.cells.activated','Mast.cells.resting','Mast.cells.activated','Eosinophils','Neutrophils','TotalLeukocyte']:
-            p1_1 = [g_phenotypes[phenotype][i] for i in cond2]
-            cor1 = correlation(pc1_1, p1_1)
-            attributes[tumor+'_'+phenotype] = dict(zip(['rho', 'pValue'], cor1))
+            p1_1 = [g_phenotypes[tumor][phenotype][i] for i in cond2]
+            if not sum([1 for i in p1_1 if i=='NA'])==len(p1_1) and not sum([1 for i in pc1_1 if i=='NA'])==len(pc1_1):
+                cor1 = correlation(pc1_1, p1_1)
+                attributes[tumor+'_'+phenotype] = dict(zip(['rho', 'pValue'], cor1))
+            else:
+                attributes[tumor+'_'+phenotype] = {'rho':'NA', 'pValue':'NA'}
 
             # Association of bicluster expression with patient survival
-            surv = [g_phenotypes['days_to_death'][i] for i in cond2]
-            binDead = lambda x: 1 if x=='DEAD' else 0
-            dead = [binDead(g_phenotypes['vital_status'][i]) for i in cond2]
-            age = [g_phenotypes['age_at_initial_pathologic_diagnosis'][i] for i in cond2]
+            surv = [g_phenotypes[tumor]['days_to_death'][i] for i in cond2]
+            dead = [g_phenotypes[tumor]['vital_status'][i] for i in cond2]
+            age = [g_phenotypes[tumor]['age_at_initial_pathologic_diagnosis'][i] for i in cond2]
             s1 = survival(surv, dead, pc1_1, age)
             attributes[tumor+'_Survival'] = dict(zip(['z', 'pValue'], s1[0]))
             attributes[tumor+'_Survival.AGE'] = dict(zip(['z', 'pValue'], s1[1]))
@@ -806,10 +812,10 @@ def __read_ratios(cfg, c1):
     for tumor in cfg['tumors']:
         ratios[tumor] = {}
         print "reading ratios matrix"
-        with open(cfg['ratios-file'][0]+tumor+cfg['ratios-file'][1], 'r') as infile:
-            conditions = [i.strip('"') for i in infile.readline().strip().split('\t')]
+        with open(cfg['all-ratios-file'][0]+tumor+cfg['all-ratios-file'][1], 'r') as infile:
+            conditions = [i.strip('"') for i in infile.readline().strip().split(',')]
             for line in infile:
-                comps = line.strip().split('\t')
+                comps = line.strip().split(',')
                 ratios[tumor][comps[0].strip('"')] = dict(zip(conditions, comps[1:]))
 
     print "dump cluster row members"
@@ -834,8 +840,9 @@ def __get_cluster_eigengenes(cfg, c1):
         if not os.path.exists(cluster_eigengenes_path):
             ret = subprocess.check_call(['./getEigengene.R',
                                          '-r', cfg['ratios-file'][0]+tumor+cfg['ratios-file'][1],
-                                         '-o', cfg['outdir']],
+                                         '-o', cfg['outdir'],
                                          '-t', tumor,
+                                         '-c', str(cpu_count())],
                                         stderr=subprocess.STDOUT)
             if ret == 1:
                 print "could not create Eigengenes"
@@ -881,6 +888,7 @@ def __get_phenotype_info(cfg, c1):
             splitUp = line.strip().split(',')
             #phenotypes[splitUp[1]] = {}
             for i in range(len(ids)):
+                #phenotypes[splitUp[1]][ids[i]]['.'.join(splitUp[0].split('-'))] = splitUp[i+1]
                 phenotypes[splitUp[1]][ids[i]][splitUp[0]] = splitUp[i+1]
     return phenotypes
 
@@ -892,6 +900,7 @@ def __do_postprocess(postprocess_pkl_path, c1, ratios, phenotypes):
         g_ratios = ratios
         g_phenotypes = phenotypes
         print 'Do post processing...'
+        post_process(1)
         pool = Pool(processes=cpu_count())
         res1 = pool.map(post_process, c1.biclusters)
         pool.close()
@@ -1038,7 +1047,7 @@ def __expand_tf_factor_list(entrez2id):
     return tfName2entrezId, tfFamilies
 
 
-def __correlate_tfs_with_cluster_eigengenes(cfg, c1):
+def __correlate_tfs_with_cluster_eigengenes(cfg, c1, tumor):
 
     #######################################################################
     ## Filter expanded TFs through correlation with bicluster eigengenes ##
@@ -1047,41 +1056,38 @@ def __correlate_tfs_with_cluster_eigengenes(cfg, c1):
 
     # Get microarray data
     exp_data = {}
-    with open(cfg['all-ratios-file'], 'r') as infile:
-        all_names = map(lambda n: n.strip('"'), infile.readline().strip().split('\t'))
+    with open(cfg['all-ratios-file'][0]+tumor+cfg['all-ratios-file'][1], 'r') as infile:
+        all_names = map(lambda n: n.strip('"'), infile.readline().strip().split(','))
         for line in infile:
-            row = line.strip().split('\t')
+            row = line.strip().split(',')
             exp_data[row[0].strip('"')] = dict(zip(all_names, row[1:]))
 
     # [rho, pValue] = correlation(a1,a2)
     for cluster_num, bicluster in c1.biclusters.items():
         for pssm in bicluster.pssms_upstream:
-            compared = defaultdict(list)
+            compared = []
 
             # Get maximum amount of correlation positive or negative
             if len(pssm.expanded_matches) > 0:
                 print cluster_num, pssm.name, len(pssm.expanded_matches)
                 for factor in pssm.expanded_matches:
-                    for subset in cfg['subsets']:
-                        corMax = []
-                        if factor['factor'] in exp_data.keys():
-                            eigengene = bicluster.attributes['pc1']
-                            if not factor['factor'] in compared[subset]:
-                                    compared[subset].append(factor['factor'])
-                                    cor1 = correlation([eigengene[i]
-                                                        for i in all_names][cfg['subsets_pos'][subset][0]:cfg['subsets_pos'][subset][1]],
-                                                       [exp_data[factor['factor']][i] for i in all_names][cfg['subsets_pos'][subset][0]:cfg['subsets_pos'][subset][1]])
-                                    print subset, factor['factor'], cor1
-                                    if corMax==[] or abs(cor1[0])>abs(corMax[0]):
-                                        corMax = cor1
-                        if not corMax==[]:
-                            pssm.add_correlated_match(subset,factor['factor'],corMax[0],corMax[1])
+                    corMax = []
+                    if factor['factor'] in exp_data.keys():
+                        eigengene = bicluster.attributes['pc1']
+                        if not factor['factor'] in compared:
+                            compared.append(factor['factor'])
+                            cor1 = correlation([eigengene[i] for i in all_names], [exp_data[factor['factor']][i] for i in all_names])
+                            print tumor, factor['factor'], cor1
+                            if corMax==[] or abs(cor1[0])>abs(corMax[0]):
+                                corMax = cor1
+                    if not corMax==[]:
+                        pssm.add_correlated_match(tumor,factor['factor'],corMax[0],corMax[1])
     print 'Done.\n'
     return exp_data, all_names
 
 
 def __expand_and_correlate_tfbsdb_tfs(c1, tf_name2entrezid, tf_families, exp_data,
-                                      all_names):
+                                      all_names, tumor):
     print 'Expand and correlate TFBS_DB TFs...'
     for bicluster in c1.biclusters.values():
         # Get the tfbs_db attribute and for each TF get the list of expanded factors
@@ -1109,28 +1115,24 @@ def __expand_and_correlate_tfbsdb_tfs(c1, tf_name2entrezid, tf_families, exp_dat
     # [rho, pValue] = correlation(a1,a2)
     for bicluster in c1.biclusters.values():
         factors = bicluster.attributes['tfbs_db_expanded']
-        compared = defaultdict(list)
+        compared = []
         correlatedFactor = defaultdict(list)
 
         # Get maximum amount of correlation positive or negative
         for factor1 in factors:
             for factor2 in factors[factor1]:
-                for subset in cfg['subsets']:
-                    corMax = []
-                    if factor2 in exp_data:
-                        eigengene = bicluster.attributes['pc1']
-                        if not factor2 in compared:
-                            compared[subset].append(factor2)
-                            cor1 = correlation([eigengene[i]
-                                                for i in all_names][cfg['subsets_pos'][subset][0]:cfg['subsets_pos'][subset][1]],
-                                               [exp_data[factor2][i]
-                                                for i in all_names][cfg['subsets_pos'][subset][0]:cfg['subsets_pos'][subset][1]])
-                            print cor1
-                            if corMax==[] or abs(cor1[0])>abs(corMax[0]):
-                                corMax = cor1
-                        if not corMax==[]:
-                            correlatedFactor[subset].append({'factor':factor2,'rho':corMax[0],'pValue':corMax[1]})
-        bicluster.add_attribute('tfbs_db_correlated', correlatedFactor)
+                corMax = []
+                if factor2 in exp_data:
+                    eigengene = bicluster.attributes['pc1']
+                    if not factor2 in compared:
+                        compared.append(factor2)
+                        cor1 = correlation([eigengene[i] for i in all_names], [exp_data[factor2][i] for i in all_names])
+                        print cor1
+                        if corMax==[] or abs(cor1[0])>abs(corMax[0]):
+                            corMax = cor1
+                    if not corMax==[]:
+                        correlatedFactor[tumor].append({'factor':factor2,'rho':corMax[0],'pValue':corMax[1]})
+    bicluster.add_attribute('tfbs_db_correlated', correlatedFactor)
     print 'Done.\n'
 
 
@@ -1495,11 +1497,12 @@ def perform_postprocessing(cfg, c1, entrez2id, mirna_ids):
         __do_postprocess(cfg.outdir_path('postProcessed.pkl'), c1, ratios, phenotypes) # Updated for tumors
         __tomtom_upstream_motifs(cfg) # No updates needed
         tf_name2entrezid, tf_families = __expand_tf_factor_list(entrez2id) # No updates needed
-        exp_data, all_names = __correlate_tfs_with_cluster_eigengenes(cfg, c1) # TODO
-        __expand_and_correlate_tfbsdb_tfs(c1, tf_name2entrezid, tf_families,
-                                          exp_data, all_names) # TODO
+        for tumor in cfg['tumors']:
+            exp_data, all_names = __correlate_tfs_with_cluster_eigengenes(cfg, c1, tumor) # Updated for tumors
+            __expand_and_correlate_tfbsdb_tfs(c1, tf_name2entrezid, tf_families,
+                                          exp_data, all_names, tumor) # Updated for tumors
         __write_first_principal_components(cfg, c1) # Updated for tumors
-        __get_permuted_pvalues_for_upstream_meme_motifs(cfg, c1)
+        __get_permuted_pvalues_for_upstream_meme_motifs(cfg, c1) # No updates needed
         __run_mirvestigator_3putr(cfg, c1)
         __convert_mirvestigator_3putr_results(cfg, c1, mirna_ids)
         #__make_replication_pvalues(cfg, c1)

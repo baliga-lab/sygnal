@@ -2,8 +2,8 @@
 suppressMessages(library(WGCNA))
 suppressMessages(library(impute))
 suppressMessages(library(getopt))
+suppressMessages(library(parallel))
 
-allowWGCNAThreads()
 
 getEigengene <- function (expr, colors, impute = TRUE, nPC = 1, align = "along average", 
     excludeGrey = FALSE, grey = ifelse(is.numeric(colors), 0, 
@@ -208,33 +208,39 @@ getEigengene <- function (expr, colors, impute = TRUE, nPC = 1, align = "along a
 spec = matrix(c(
   'ratios', 'r', 1, 'character',
   'outdir', 'o', 1, 'character',
+  'tumor', 't', 1, 'character',
+  'cores', 'c', 1, 'integer',
   'help', 'h', 0, 'logical'
 ), byrow=TRUE, ncol=4)
 
 opt <- getopt(spec)
 
-if (is.null(opt$ratios) || is.null(opt$outdir) || !is.null(opt$help)) {
+
+if (is.null(opt$ratios) || is.null(opt$outdir) || !is.null(opt$help) || is.null(opt$tumor) || is.null(opt$cores)) {
   cat(getopt(spec, usage=TRUE))
   q(status=1)
 }
 
+allowWGCNAThreads(opt$cores)
+
 # ratios was "norm_gexp_preprocessed_comb_all_ucsc_SUBSET_vRedundant.tsv"
 
 infile <- paste(opt$outdir, 'cluster.members.genes.txt', sep='/')
-eg.outfile <- paste(opt$outdir, 'biclusterEigengenes.csv', sep='/')
-eg.ve.outfile <- paste(opt$outdir, 'biclusterVarianceExplained.csv', sep='/')
+eg.outfile <- paste(opt$outdir, paste('biclusterEigengenes_',opt$tumor,'.csv',sep=''), sep='/')
+eg.ve.outfile <- paste(opt$outdir, paste('biclusterVarianceExplained_',opt$tumor,'.csv',sep=''), sep='/')
+
+# Read in expression ratios file
+ratios <- read.delim( file=opt$ratios, sep="\t", as.is=T, header=T,row.names=1 )
+#rownames(ratios) <- toupper(rownames(ratios))
 
 # Read in genes for each cluster
 d1 = read.csv(infile, header=F)
 biclustMembership = list()
 allGenes = c()
 for(j in 1:length(d1[,1])) {
-    biclustMembership[[j]] = strsplit(as.character(d1[j,]),split=' ')[[1]][-1]
+    biclustMembership[[j]] = intersect(strsplit(as.character(d1[j,]),split=' ')[[1]][-1], rownames(ratios))
 }
 
-# Read in expression ratios file
-ratios <- read.delim( file=opt$ratios, sep="\t", as.is=T, header=T,row.names=1 )
-#rownames(ratios) <- toupper(rownames(ratios))
 
 # Dump out eigengenes
 eg1 = getEigengene(t(ratios),biclustMembership)
