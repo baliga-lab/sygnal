@@ -901,6 +901,7 @@ def __do_postprocess(postprocess_pkl_path, c1, ratios, phenotypes):
         g_phenotypes = phenotypes
         print 'Do post processing...'
         post_process(1)
+        print 'Done with cluster 1'
         pool = Pool(processes=cpu_count())
         res1 = pool.map(post_process, c1.biclusters)
         pool.close()
