@@ -195,6 +195,8 @@ def weeder(bicluster, seqfile, bgfile, size, enriched, revcomp):
 
     # Get into the highest ranking motifs
     while 1:
+        if len(outLines)<=1:
+            break
         outLine = outLines.pop(0)
         if not outLine.find('Interesting motifs (highest-ranking)') == -1:
             break
