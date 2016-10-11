@@ -757,16 +757,17 @@ def compute_additional_info(cfg, mirna_ids, gene_conv):
     return c1
 
 
-def post_process(cluster_num):
+def post_process(arg):
     global g_ratios, g_phenotypes
 
     def clean_name(name):
         comps = name.split('-')
         return '%s.%s.%s' % (comps[0], comps[1], comps[2])
 
+    cluster_num, bicluster, tumor = arg
     attributes = {}
     print ' Postprocessing cluster:', cluster_num
-    bicluster = c1.biclusters[cluster_num]
+    #bicluster = c1.biclusters[cluster_num]
     attributes['k'] = cluster_num
 
     # Add number of genes and conditions
@@ -775,49 +776,45 @@ def post_process(cluster_num):
 
     # Get matrix of expression for genes
     genes = bicluster.genes
-    #conditions = g_ratios['ACC'][genes[0]].keys()
-    #matrix = [[g_ratios[gene][condition] for condition in conditions] for gene in genes]
 
-    # For each tumor
-    for tumor in g_ratios.keys():
-        # Get first principal component variance explained
-        fpc = bicluster.attributes[tumor+'_pc1']
-        # Corrleation with patient traits
-        cond2 = set(g_ratios[tumor][g_ratios[tumor].keys()[0]].keys()).intersection(g_phenotypes[tumor]['days_to_death'].keys())
-        cond2 = set(cond2).intersection(['-'.join(i.split('.')) for i in fpc.keys()])
-        cleanNames = dict(zip(cond2, [clean_name(i) for i in cond2]))
-        pc1_1 = [fpc[cleanNames[i]] for i in cond2]
+    # Get first principal component variance explained
+    fpc = bicluster.attributes[tumor+'_pc1']
+    # Corrleation with patient traits
+    cond2 = set(g_ratios[g_ratios.keys()[0]].keys()).intersection(g_phenotypes[tumor]['days_to_death'].keys())
+    cond2 = set(cond2).intersection(['-'.join(i.split('.')) for i in fpc.keys()])
+    cleanNames = dict(zip(cond2, [clean_name(i) for i in cond2]))
+    pc1_1 = [fpc[cleanNames[i]] for i in cond2]
 
-        for phenotype in ['B.cells.naive','B.cells.memory','Plasma.cells','T.cells.CD8','T.cells.CD4.naive','T.cells.CD4.memory.resting','T.cells.CD4.memory.activated','T.cells.follicular.helper','T.cells.regulatory..Tregs.','T.cells.gamma.delta','NK.cells.resting','NK.cells.activated','Monocytes','Macrophages.M0','Macrophages.M1','Macrophages.M2','Dendritic.cells.resting','Dendritic.cells.activated','Mast.cells.resting','Mast.cells.activated','Eosinophils','Neutrophils','TotalLeukocyte']:
-            p1_1 = [g_phenotypes[tumor][phenotype][i] for i in cond2]
-            if not sum([1 for i in p1_1 if i=='NA'])==len(p1_1) and not sum([1 for i in pc1_1 if i=='NA'])==len(pc1_1):
-                cor1 = correlation(pc1_1, p1_1)
-                attributes[tumor+'_'+phenotype] = dict(zip(['rho', 'pValue'], cor1))
-            else:
-                attributes[tumor+'_'+phenotype] = {'rho':'NA', 'pValue':'NA'}
+    for phenotype in ['B.cells.naive','B.cells.memory','Plasma.cells','T.cells.CD8','T.cells.CD4.naive','T.cells.CD4.memory.resting','T.cells.CD4.memory.activated','T.cells.follicular.helper','T.cells.regulatory..Tregs.','T.cells.gamma.delta','NK.cells.resting','NK.cells.activated','Monocytes','Macrophages.M0','Macrophages.M1','Macrophages.M2','Dendritic.cells.resting','Dendritic.cells.activated','Mast.cells.resting','Mast.cells.activated','Eosinophils','Neutrophils','TotalLeukocyte']:
+        p1_1 = [g_phenotypes[tumor][phenotype][i] for i in cond2]
+        if not sum([1 for i in p1_1 if i=='NA'])==len(p1_1) and not sum([1 for i in pc1_1 if i=='NA'])==len(pc1_1):
+            cor1 = correlation(pc1_1, p1_1)
+            attributes[tumor+'_'+phenotype] = dict(zip(['rho', 'pValue'], cor1))
+        else:
+            attributes[tumor+'_'+phenotype] = {'rho':'NA', 'pValue':'NA'}
 
-            # Association of bicluster expression with patient survival
-            surv = [g_phenotypes[tumor]['days_to_death'][i] for i in cond2]
-            dead = [g_phenotypes[tumor]['vital_status'][i] for i in cond2]
-            age = [g_phenotypes[tumor]['age_at_initial_pathologic_diagnosis'][i] for i in cond2]
-            s1 = survival(surv, dead, pc1_1, age)
-            attributes[tumor+'_Survival'] = dict(zip(['z', 'pValue'], s1[0]))
-            attributes[tumor+'_Survival.AGE'] = dict(zip(['z', 'pValue'], s1[1]))
+        # Association of bicluster expression with patient survival
+        surv = [g_phenotypes[tumor]['days_to_death'][i] for i in cond2]
+        dead = [g_phenotypes[tumor]['vital_status'][i] for i in cond2]
+        age = [g_phenotypes[tumor]['age_at_initial_pathologic_diagnosis'][i] for i in cond2]
+        s1 = survival(surv, dead, pc1_1, age)
+        attributes[tumor+'_Survival'] = dict(zip(['z', 'pValue'], s1[0]))
+        attributes[tumor+'_Survival.AGE'] = dict(zip(['z', 'pValue'], s1[1]))
 
     return attributes
 
 
-def __read_ratios(cfg, c1):
+def __read_ratios(cfg, tumor):
+    print "reading ratios matrix"
     ratios = {}
-    for tumor in cfg['tumors']:
-        ratios[tumor] = {}
-        print "reading ratios matrix"
-        with open(cfg['all-ratios-file'][0]+tumor+cfg['all-ratios-file'][1], 'r') as infile:
-            conditions = [i.strip('"') for i in infile.readline().strip().split(',')]
-            for line in infile:
-                comps = line.strip().split(',')
-                ratios[tumor][comps[0].strip('"')] = dict(zip(conditions, comps[1:]))
+    with open(cfg['all-ratios-file'][0]+tumor+cfg['all-ratios-file'][1], 'r') as infile:
+        conditions = [i.strip('"') for i in infile.readline().strip().split(',')]
+        for line in infile:
+            comps = line.strip().split(',')
+            ratios[comps[0].strip('"')] = dict(zip(conditions, comps[1:]))
+    return ratios
 
+def dump_cluster_members(cfg, c1):
     print "dump cluster row members"
 
     with open(cfg.outdir_path('cluster.members.genes.txt'), 'w') as outfile:
@@ -828,7 +825,6 @@ def __read_ratios(cfg, c1):
     with open(cfg.outdir_path('cluster.members.conditions.txt'), 'w') as outfile:
         for cluster_num in c1.biclusters:
             outfile.write('%s %s\n' % (cluster_num, ' '.join(c1.biclusters[cluster_num].conditions)))
-    return ratios
 
 
 def __get_cluster_eigengenes(cfg, c1):
@@ -893,34 +889,48 @@ def __get_phenotype_info(cfg, c1):
     return phenotypes
 
 
-def __do_postprocess(postprocess_pkl_path, c1, ratios, phenotypes):
+def __do_postprocess(cfg, c1, phenotypes):
     global g_ratios, g_phenotypes
 
+    postprocess_pkl_path = cfg.outdir_path('postProcessed.pkl')
+    tumors = cfg['tumors']
+
+    # TODO: call post processing for each tumor type separately,
+    # outfactor from read_ratios and post_process
+    dump_cluster_members(cfg, c1)
+
+    multi = False
     if not os.path.exists(postprocess_pkl_path):
-        g_ratios = ratios
         g_phenotypes = phenotypes
-        print 'Do post processing...'
-        post_process(1)
-        print 'Done with cluster 1'
-        pool = Pool(processes=cpu_count())
-        res1 = pool.map(post_process, c1.biclusters)
-        pool.close()
-        pool.join()
+
+        for tumor in tumors:  # for debugging only
+            g_ratios = __read_ratios(cfg, tumor) # Updated for tumors
+            args = [[bicluster, c1.biclusters[bicluster], tumor] for bicluster in c1.biclusters]
+            if multi:
+                pool = Pool()
+                res1 = pool.map(post_process, args)
+                pool.join()
+                pool.close()
+            else:
+                res1 = [post_process(arg) for arg in args]
+
+            # Put results in cMonkey object
+            for entry in res1:
+                bicluster = c1.biclusters[entry['k']]
+                for attribute in entry:
+                    if not attribute == 'k':
+                        bicluster.add_attribute(attribute, entry[attribute])
         print 'Done.\n'
 
+    """
         # Dump res1 into a pkl
         with open(postprocess_pkl_path, 'wb') as outfile:
             cPickle.dump(res1, outfile)
     else:
         with open(postprocess_pkl_path, 'rb') as infile:
             res1 = cPickle.load(infile)
+    """
 
-    # Put results in cMonkey object
-    for entry in res1:
-        bicluster = c1.biclusters[entry['k']]
-        for attribute in entry:
-            if not attribute == 'k':
-                bicluster.add_attribute(attribute, entry[attribute])
 
 
 def __tomtom_upstream_motifs(cfg):
@@ -1491,11 +1501,12 @@ def __make_go_term_semantic_similarity(cfg, c1):
 def perform_postprocessing(cfg, c1, entrez2id, mirna_ids):
     pkl_path = cfg.outdir_path('c1_postProc.pkl')
     if not os.path.exists(pkl_path):
-        ratios = __read_ratios(cfg, c1) # Updated for tumors
         __get_cluster_eigengenes(cfg, c1) # Updated for tumors
         __get_cluster_variance_explained(cfg, c1) # Updated for tumors
         phenotypes = __get_phenotype_info(cfg, c1) # Updated for tumors
-        __do_postprocess(cfg.outdir_path('postProcessed.pkl'), c1, ratios, phenotypes) # Updated for tumors
+
+        __do_postprocess(cfg, c1, phenotypes) # Updated for tumors
+
         __tomtom_upstream_motifs(cfg) # No updates needed
         tf_name2entrezid, tf_families = __expand_tf_factor_list(entrez2id) # No updates needed
         for tumor in cfg['tumors']:

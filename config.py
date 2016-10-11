@@ -38,6 +38,7 @@ def sygnal_init():
     parser = argparse.ArgumentParser(description="sygnal.py - Systems Genetic Network AnaLyse pipeline")
     parser.add_argument('--config',  default="sygnal_config.json", help="config file")
     parser.add_argument('--out',  default='output', help='output directory')
+    parser.add_argument('--res',  default='postProcessed.csv', help='post processing result file')
     parser.add_argument('--tmp',  default='tmp', help='temporary output directory')
     parser.add_argument('cm_rundb', help='cmonkey2 run database')
     args = parser.parse_args()
@@ -45,10 +46,11 @@ def sygnal_init():
     with open(args.config, 'r') as infile:
         config = json.load(infile)
         config['outdir'] = args.out
+        config['postprocessing-result-file'] = args.res
         config['tmpdir'] = args.tmp
         config['cmonkey-rundb'] = args.cm_rundb
 
         if not os.path.exists(config['outdir']):
             os.makedirs(config['outdir'])
         return SygnalConfig(config)
-    
+

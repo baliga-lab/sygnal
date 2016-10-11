@@ -18,6 +18,10 @@
     "promoterSeq": "seqs/promoterSeqs_Homo_sapiens.csv.gz",
     "p3utrSeq": "seqs/p3utrSeqs_Homo_sapiens.csv.gz",
     "gene_conv": "extras/entrez2ucsc.csv",
+    
+    "pita": "/proj/omics4tb/cplaisier/cMonkey/panCancer/commonFiles/pita_miRNA_sets_entrez_hsa.json",
+    "targetscan": "/proj/omics4tb/cplaisier/cMonkey/panCancer/commonFiles/targetScan_miRNA_sets_entrez_hsa.json",
+    "tfbsdb": "/proj/omics4tb/cplaisier/cMonkey/panCancer/commonFiles/tfbsDb_plus_and_minus_5000_entrez.json",
 
     "replication-dataset-names": ["French", "REMBRANDT", "GSE7696"],
 
