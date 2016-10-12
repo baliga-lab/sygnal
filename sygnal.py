@@ -494,7 +494,7 @@ def __compute_motifs_weeder(cfg, pkl_path, biclusters, add_result, bicluster_seq
         cfg.clear_tmp()
         cfg.create_tmpdir('weeder/fasta')
 
-        # Run MEME on all biclusters
+        # Run WEEDER on all biclusters
         mgr = Manager()
         run_args = []
 
@@ -536,8 +536,11 @@ def __compute_motifs_weeder(cfg, pkl_path, biclusters, add_result, bicluster_seq
             p.de_novo_method = 'weeder'
             add_result(i, p)
 
+    print 'Done with WEEDERing.\n'
+
 
 def compute_upstream_motifs_weeder(cfg, c1):
+    print '\nRunning WEEDER on Upstreams:'
     if not c1.weeder_upstream:
         __compute_motifs_weeder(cfg, cfg.outdir_path('weeder_upstream.pkl'),
                                 c1.biclusters,
@@ -551,6 +554,7 @@ def compute_upstream_motifs_weeder(cfg, c1):
 
 
 def compute_3pUTR_weeder(cfg, c1):
+    print '\nRunning WEEDR on 3\' UTRs:'
     if not c1.weeder_3pUTR:
         __compute_motifs_weeder(cfg, cfg.outdir_path('weeder_3pUTR.pkl'),
                                 c1.biclusters,
@@ -619,20 +623,10 @@ def __read_predictions(pred_path, pkl_path, genes_in_biclusters, manager):
         print 'loading predictions...'
         tmp_set = set()
         tmp_dict = {}
-        """with gzip.open(pred_path, 'r') as infile:
-            inLines = [i.strip().split(',') for i in infile.readlines() if i.strip()]
-
-        for line in inLines:
-            if line[1] in genes_in_biclusters:
-                tmp_set.add(line[1])
-                if not line[0] in tmp_dict:
-                    tmp_dict[line[0]] = []
-                tmp_dict[line[0]].append(line[1])
-        """
         inFile = open(pred_path,'r')
         tmp_dict = json.load(inFile)
         inFile.close()
-        tmp_set = tmp_dict.keys()
+        tmp_set = set([item for sublist in tmp_dict.values() for item in sublist])
         with open(pkl_path,'wb') as pklFile:
             cPickle.dump(tmp_dict, pklFile)
             cPickle.dump(tmp_set, pklFile)
