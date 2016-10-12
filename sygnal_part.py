@@ -146,6 +146,8 @@ def weeder(bicluster, seqfile, bgfile, size, enriched, revcomp):
     hitBp = {}
     # Get top hit of 6bp look for "1)"
     while 1:
+        if len(outLines)<=1:
+            break
         outLine = outLines.pop(0)
         if not outLine.find('1) ') == -1:
             break
@@ -153,12 +155,16 @@ def weeder(bicluster, seqfile, bgfile, size, enriched, revcomp):
 
     # Scroll to where the 8bp reads will be
     while 1:
+        if len(outLines)<=1:
+            break
         outLine = outLines.pop(0)
         if not outLine.find('Searching for motifs of length 8') == -1:
             break
 
     # Get top hit of 8bp look for "1)"
     while 1:
+        if len(outLines)<=1:
+            break
         outLine = outLines.pop(0)
         if not outLine.find('1) ') == -1:
             break
@@ -167,12 +173,16 @@ def weeder(bicluster, seqfile, bgfile, size, enriched, revcomp):
     if size=='medium':
         # Scroll to where the 10bp reads wll be
         while 1:
+            if len(outLines)<=1:
+                break
             outLine = outLines.pop(0)
             if not outLine.find('Searching for motifs of length 10') == -1:
                 break
 
         # Get top hit of 10bp look for "1)"
         while 1:
+            if len(outLines)<=1:
+                break
             outLine = outLines.pop(0)
             if not outLine.find('1) ') == -1:
                 break
@@ -180,6 +190,8 @@ def weeder(bicluster, seqfile, bgfile, size, enriched, revcomp):
 
     # Scroll to where the 10bp reads will be
     while 1:
+        if len(outLines)<=1:
+            break
         outLine = outLines.pop(0)
         if not outLine.find('Your sequences:') == -1:
             break
@@ -187,6 +199,8 @@ def weeder(bicluster, seqfile, bgfile, size, enriched, revcomp):
     # Get into the highest ranking motifs
     seqDict = {}
     while 1:
+        if len(outLines)<=1:
+            break
         outLine = outLines.pop(0)
         if not outLine.find('**** MY ADVICE ****') == -1:
             break
