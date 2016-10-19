@@ -27,9 +27,6 @@ l1$TumorPromotingInflammation = c('GO:0002419','GO:0002420','GO:0002857','GO:000
 l1$ReprogrammingEnergyMetabolism = c('GO:0006096','GO:0071456')
 l1$EvadingImmuneDetection = c('GO:0002837','GO:0002418','GO:0002367','GO:0050776')
 
-d0 = c('GO:0009887','GO:0009605','GO:0048870','GO:0050896','GO:0007202','GO:0009611','GO:0006928','GO:0006950','GO:0048513','GO:0007166','GO:0014070')
-d0 = c('GO:0007155','GO:0001568','GO:0001525','GO:0048514')
-
 d1 = read.csv(paste(loc1, 'biclusterEnrichment_GOBP.csv', sep='/'),header=T,row.names=1)
 l2 = list()
 for(cluster in rownames(d1)) {

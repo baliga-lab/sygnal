@@ -22,14 +22,14 @@ biclustMembership = list()
 for(j in 1:length(d1[,1])) {
     biclustMembership[[j]] = strsplit(as.character(d1[j,]),split=' ')[[1]][-1]
 }
-xx <- annFUN.org("BP", mapping = "org.Hs.eg.db", ID = "symbol")
+xx <- annFUN.org("BP", mapping = "org.Hs.eg.db", ID = "entrez")
 geneNames <- intersect(unique(unlist(biclustMembership)), unique(unlist(xx)))
 tmp1 <- biclustMembership[[1]]
 geneList <- factor(as.integer(geneNames %in% tmp1))
 names(geneList) <- geneNames
 
 # Make Biological Process GOData object
-GOdata.BP <- new("topGOdata", ontology='BP', allGenes = geneList, annot = annFUN.org, mapping = 'org.Hs.eg.db', ID = 'symbol')
+GOdata.BP <- new("topGOdata", ontology='BP', allGenes = geneList, annot = annFUN.org, mapping = 'org.Hs.eg.db', ID = 'entrez')
 m1.BP <- matrix(nrow = length(GOdata.BP@graph@nodes), ncol = length(biclustMembership), dimnames = list(GOdata.BP@graph@nodes, 1:length(biclustMembership)))
 m2.BP <- matrix(nrow = length(biclustMembership), ncol=2, dimnames = list(1:length(biclustMembership),c('Top10.Terms.BP','BH.sig.GO.Ids.BP')))
 for( biclust in (1:length(biclustMembership)) ) {

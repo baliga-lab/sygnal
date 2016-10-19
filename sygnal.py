@@ -33,6 +33,9 @@ import rpy2.robjects as robj
 from rpy2.robjects import FloatVector, IntVector, StrVector
 from rpy2 import rinterface
 
+from scipy.stats import pearsonr
+import numpy as np
+
 # Custom offYerBack libraries
 from cMonkeyWrapper import cMonkeyWrapper
 from pssm import PSSM
@@ -292,11 +295,26 @@ def correlation(a1, a2):
     Input: Two arrays of float or integers.
     Returns: Corrleation coefficient and p-value.
     """
+    """
     cor_test = robj.r['cor.test']
     result = cor_test(make_rfloat_vector(a1), make_rfloat_vector(a2))
     res = dict(zip(result.names, list(result)))
-    return res['estimate'][0], res['p.value'][0]
-
+    tmp_e = 'NA'
+    if not str(res['estimate'][0])=='NA':
+        tmp_e = float(res['estimate'][0])
+    tmp_p = 'NA'
+    if not str(res['p.value'][0])=='NA':
+        tmp_p = float(res['p.value'][0])
+    return tmp_e, tmp_p
+    """
+    tmp = [i for i in range(len(a1)) if not (a1[i]=='NA' or a2[i]=='NA')]
+    a1 = [float(a1[i]) for i in tmp]
+    a2 = [float(a2[i]) for i in tmp]
+    res = pearsonr(a1, a2)
+    if not np.isnan(res[0]):
+        return res[0], res[1]
+    else:
+        return 'NA', 'NA'
 
 def survival(survival, dead, pc1, age):
     """
@@ -806,21 +824,23 @@ def post_process(arg):
         attr_name = '%s_%s' % (tumor, phenotype)
         if num_p1_1_nas != len(p1_1) and num_pc1_1_nas != len(pc1_1):
             cor_rho, cor_pvalue = correlation(pc1_1, p1_1)
-            if math.isnan(cor_rho):
-                cor_rho = 'NA'
-            if math.isnan(cor_pvalue):
-                cor_pvalue = 'NA'
+            #if math.isnan(cor_rho):
+            #    cor_rho = 'NA'
+            #if math.isnan(cor_pvalue):
+            #    cor_pvalue = 'NA'
             attributes[attr_name] = {'rho': cor_rho, 'pValue': cor_pvalue }
+
+            # Association of bicluster expression with patient survival
+            surv = [phenotypes['days_to_death'][c] for c in result_conds]
+            dead = [phenotypes['vital_status'][c] for c in result_conds]
+            age = [phenotypes['age_at_initial_pathologic_diagnosis'][c] for c in result_conds]
+            surv_0, surv_age = survival(surv, dead, pc1_1, age)
+            attributes[tumor + '_Survival'] = {'z': surv_0[0], 'pValue': surv_0[1] }
+            attributes[tumor + '_Survival.AGE'] = {'z': surv_age[0], 'pValue': surv_age[1]}
         else:
             attributes[attr_name] = {'rho':'NA', 'pValue':'NA'}
-
-        # Association of bicluster expression with patient survival
-        surv = [phenotypes['days_to_death'][c] for c in result_conds]
-        dead = [phenotypes['vital_status'][c] for c in result_conds]
-        age = [phenotypes['age_at_initial_pathologic_diagnosis'][c] for c in result_conds]
-        surv_0, surv_age = survival(surv, dead, pc1_1, age)
-        attributes[tumor + '_Survival'] = {'z': surv_0[0], 'pValue': surv_0[1] }
-        attributes[tumor + '_Survival.AGE'] = {'z': surv_age[0], 'pValue': surv_age[1]}
+            attributes[tumor + '_Survival'] = {'z': 'NA', 'pValue': 'NA'}
+            attributes[tumor + '_Survival.AGE'] = {'z': 'NA', 'pValue': 'NA'}
 
     return attributes
 
@@ -851,11 +871,11 @@ def __get_cluster_eigengenes(cfg, c1):
     # For each tumor type
     for tumor in cfg['tumors']:
         # Calculate bicluster eigengene (first principal components)
-        print "compute bicluster eigengenes"
+        print tumor, "compute bicluster eigengenes"
         cluster_eigengenes_path = cfg.outdir_path('biclusterEigengenes_'+tumor+'.csv')
         if not os.path.exists(cluster_eigengenes_path):
             ret = subprocess.check_call(['./getEigengene.R',
-                                         '-r', cfg['ratios-file'][0]+tumor+cfg['ratios-file'][1],
+                                         '-r', cfg['all-ratios-file'][0]+tumor+cfg['all-ratios-file'][1],
                                          '-o', cfg['outdir'],
                                          '-t', tumor,
                                          '-c', str(cpu_count())],
@@ -915,11 +935,7 @@ def __do_postprocess(cfg, c1, phenotypes):
     postprocess_pkl_path = cfg.outdir_path('postProcessed.pkl')
     tumors = cfg['tumors']
 
-    # TODO: call post processing for each tumor type separately,
-    # outfactor from read_ratios and post_process
-    dump_cluster_members(cfg, c1)
-
-    multi = True
+    multi = False
     if not os.path.exists(postprocess_pkl_path):
         for tumor in tumors:  # for debugging only
             RATIOS = __read_ratios(cfg, tumor) # Updated for tumors
@@ -940,14 +956,12 @@ def __do_postprocess(cfg, c1, phenotypes):
                         bicluster.add_attribute(attribute, entry[attribute])
         print 'Done.\n'
 
-    """
         # Dump res1 into a pkl
         with open(postprocess_pkl_path, 'wb') as outfile:
             cPickle.dump(res1, outfile)
     else:
         with open(postprocess_pkl_path, 'rb') as infile:
             res1 = cPickle.load(infile)
-    """
 
 
 
@@ -969,10 +983,10 @@ def __tomtom_upstream_motifs(cfg):
 
     target_pssms_in = []
     for motif_file in cfg['tomtom']['upstream']['motif-files']:
-        pssms = pssm_mod.load_pssms_json(motif_file)
-        for pssm in pssms.values():
+        tmpPssms = pssm_mod.load_pssms_json(motif_file)
+        for pssm in tmpPssms.values():
             pssm.de_novo_method = 'meme'
-        target_pssms_in.append(pssms)
+        target_pssms_in.append(tmpPssms)
 
     if not os.path.exists(comparison_pkl_path):
 
@@ -1037,9 +1051,12 @@ def __expand_tf_factor_list(entrez2id):
         inFile.readline() # Get rid of header
         for line in inFile:
             splitUp = line.strip().split(',')
+            """
             if splitUp[2] in entrez2id:
                 for i in entrez2id[splitUp[2]]:
                     tfName2entrezId[splitUp[0]] = i
+            """
+            tfName2entrezId[splitUp[0]] = splitUp[2]
 
     # Read in tfFamilies.csv for expanded list of possible TFs
     tfFamilies = {}
@@ -1047,10 +1064,13 @@ def __expand_tf_factor_list(entrez2id):
         inFile.readline() # Get rid of header
         for line in inFile:
             splitUp = line.strip().split(',')
+            """
             tmp = []
             for i in splitUp[2].split(' '):
                 if i in entrez2id:
                     tmp += entrez2id[i]
+            """
+            tmp = splitUp[2].split(' ')
             tfFamilies[splitUp[0]] = tmp
 
     # Add expanded TF regulators
@@ -1086,7 +1106,7 @@ def __correlate_tfs_with_cluster_eigengenes(cfg, c1, tumor):
     # Get microarray data
     exp_data = {}
     with open(cfg['all-ratios-file'][0]+tumor+cfg['all-ratios-file'][1], 'r') as infile:
-        all_names = map(lambda n: n.strip('"'), infile.readline().strip().split(','))
+        all_names = map(lambda n: n.strip('"').replace('-','.'), infile.readline().strip().split(','))
         for line in infile:
             row = line.strip().split(',')
             exp_data[row[0].strip('"')] = dict(zip(all_names, row[1:]))
@@ -1102,10 +1122,12 @@ def __correlate_tfs_with_cluster_eigengenes(cfg, c1, tumor):
                 for factor in pssm.expanded_matches:
                     corMax = []
                     if factor['factor'] in exp_data.keys():
-                        eigengene = bicluster.attributes['pc1']
-                        if not factor['factor'] in compared:
+                        eigengene = bicluster.attributes[tumor+'_pc1']
+                        if (not factor['factor'] in compared) and (not sum([1 for i in eigengene.values() if i=='NA'])==len(eigengene)) and (float(sum([1 for i in exp_data[factor['factor']].values() if i=='NA']))/float(len(exp_data[factor['factor']])))<=0.8:
                             compared.append(factor['factor'])
-                            cor1 = correlation([eigengene[i] for i in all_names], [exp_data[factor['factor']][i] for i in all_names])
+                            tmp_names = set(eigengene.keys()).intersection(all_names)
+                            #print [eigengene[i] for i in tmp_names], [exp_data[factor['factor']][i] for i in tmp_names]
+                            cor1 = correlation([eigengene[i] for i in tmp_names], [exp_data[factor['factor']][i] for i in tmp_names])
                             print tumor, factor['factor'], cor1
                             if corMax==[] or abs(cor1[0])>abs(corMax[0]):
                                 corMax = cor1
@@ -1152,11 +1174,12 @@ def __expand_and_correlate_tfbsdb_tfs(c1, tf_name2entrezid, tf_families, exp_dat
             for factor2 in factors[factor1]:
                 corMax = []
                 if factor2 in exp_data:
-                    eigengene = bicluster.attributes['pc1']
-                    if not factor2 in compared:
+                    eigengene = bicluster.attributes[tumor+'_pc1']
+                    if (not factor2 in compared) and (not sum([1 for i in eigengene.values() if i=='NA'])==len(eigengene)) and (float(sum([1 for i in exp_data[factor2].values() if i=='NA']))/float(len(exp_data[factor2])))<=0.8:
                         compared.append(factor2)
-                        cor1 = correlation([eigengene[i] for i in all_names], [exp_data[factor2][i] for i in all_names])
-                        print cor1
+                        tmp_names = set(eigengene.keys()).intersection(all_names)
+                        cor1 = correlation([eigengene[i] for i in tmp_names], [exp_data[factor2][i] for i in tmp_names])
+                        print 'Expanded:', tumor, factor2, cor1
                         if corMax==[] or abs(cor1[0])>abs(corMax[0]):
                             corMax = cor1
                     if not corMax==[]:
@@ -1433,34 +1456,36 @@ def __read_replication_pvalues(cfg, c1):
 
 
 def __make_permuted_pvalues(cfg, c1):
-    ###########################################################################
-    ## Run permuted p-value for variance epxlained first principal component ##
-    ###########################################################################
-    pvalues_path = cfg.outdir_path('residualPermutedPvalues_permAll.csv')
-    if not os.path.exists(pvalues_path):
-        print 'Calculating FPC permuted p-values...'
-        ret = subprocess.check_call(['./permutedResidualPvalues_permAll_mc.R',
-                                     '-o', cfg['outdir'],
-                                     '-r', cfg['ratios-file']],
-                                    stderr=subprocess.STDOUT)
-        if ret == 1:
-            print "error in calling R script."
-            exit(1)
+    for tumor in cfg['tumors']:
+        ###########################################################################
+        ## Run permuted p-value for variance epxlained first principal component ##
+        ###########################################################################
+        pvalues_path = cfg.outdir_path('residualPermutedPvalues_'+tumor+'_permAll.csv')
+        if not os.path.exists(pvalues_path):
+            print 'Calculating FPC permuted p-values ',tumor,'...'
+            ret = subprocess.check_call(['./permutedResidualPvalues_permAll_mc.R',
+                                         '-o', cfg['outdir'],
+                                         '-r', cfg['all-ratios-file'][0]+tumor+cfg['all-ratios-file'][1],
+                                         '-t', tumor,
+                                         '-c', str(cpu_count())],
+                                        stderr=subprocess.STDOUT)
+            if ret == 1:
+                print "error in calling R script."
+                exit(1)
 
-        print 'Done.\n'
+            print 'Done.\n'
 
-    #################################################################
-    ## Read in residual permutations to use for filtering          ##
-    #################################################################
-    print 'Load residual permuted p-values...'
-    with open(pvalues_path, 'r') as infile:
-        # "","bicluster","n.rows","n.cols","orig.resid","avg.perm.resid","perm.p","orig.resid.norm","avg.norm.perm.resid","norm.perm.p","pc1.var.exp","avg.pc1.var.exp","pc1.perm.p"
-        infile.readline()
-        for line in infile:
-            splitUp = line.strip().split(',')
-            bicluster = c1.biclusters[int(splitUp[0].strip('"'))]
-            bicluster.add_attribute(key='resid.norm.perm.p',value=str(splitUp[9]))
-            bicluster.add_attribute(key='pc1.perm.p',value=str(splitUp[12]))
+        #################################################################
+        ## Read in residual permutations to use for filtering          ##
+        #################################################################
+        print 'Load residual permuted p-values...'
+        with open(pvalues_path, 'r') as infile:
+            # "","bicluster","n.rows","n.cols","orig.resid","avg.perm.resid","perm.p","orig.resid.norm","avg.norm.perm.resid","norm.perm.p","pc1.var.exp","avg.pc1.var.exp","pc1.perm.p"
+            infile.readline()
+            for line in infile:
+                splitUp = line.strip().split(',')
+                bicluster = c1.biclusters[int(splitUp[0].strip('"'))]
+                bicluster.add_attribute(key=tumor+'_pc1.perm.p',value=str(splitUp[7]))
     print 'Done.\n'
 
 
@@ -1519,18 +1544,29 @@ def __make_go_term_semantic_similarity(cfg, c1):
 def perform_postprocessing(cfg, c1, entrez2id, mirna_ids):
     pkl_path = cfg.outdir_path('c1_postProc.pkl')
     if not os.path.exists(pkl_path):
-        __get_cluster_eigengenes(cfg, c1) # Updated for tumors
-        __get_cluster_variance_explained(cfg, c1) # Updated for tumors
-        phenotypes = __get_phenotype_info(cfg, c1) # Updated for tumors
+        interim_path = cfg.outdir_path('c1_postInterim.pkl')
+        if not os.path.exists(interim_path):
+            dump_cluster_members(cfg, c1)
+            __get_cluster_eigengenes(cfg, c1) # Updated for tumors
+            __get_cluster_variance_explained(cfg, c1) # Updated for tumors
+            phenotypes = __get_phenotype_info(cfg, c1) # Updated for tumors
 
-        __do_postprocess(cfg, c1, phenotypes) # Updated for tumors
+            __do_postprocess(cfg, c1, phenotypes) # Updated for tumors
 
-        __tomtom_upstream_motifs(cfg) # No updates needed
-        tf_name2entrezid, tf_families = __expand_tf_factor_list(entrez2id) # No updates needed
-        for tumor in cfg['tumors']:
-            exp_data, all_names = __correlate_tfs_with_cluster_eigengenes(cfg, c1, tumor) # Updated for tumors
-            __expand_and_correlate_tfbsdb_tfs(c1, tf_name2entrezid, tf_families,
-                                          exp_data, all_names, tumor) # Updated for tumors
+            __tomtom_upstream_motifs(cfg) # No updates needed
+            tf_name2entrezid, tf_families = __expand_tf_factor_list(entrez2id) # No updates needed
+            for tumor in cfg['tumors']:
+                exp_data, all_names = __correlate_tfs_with_cluster_eigengenes(cfg, c1, tumor) # Updated for tumors
+                __expand_and_correlate_tfbsdb_tfs(c1, tf_name2entrezid, tf_families, exp_data, all_names, tumor) # Updated for tumors
+            print 'Dumping interim post-processing Object:'
+            with open(interim_path, 'wb') as outfile:
+                cPickle.dump(c1, outfile)
+            print 'Done.\n'
+        else:
+            print 'Loading from precached cMonkey Object:'
+            with open(interim_path, 'rb') as infile:
+                c1 = cPickle.load(infile)
+            print 'Done.\n'
         __write_first_principal_components(cfg, c1) # Updated for tumors
         __get_permuted_pvalues_for_upstream_meme_motifs(cfg, c1) # No updates needed
         __run_mirvestigator_3putr(cfg, c1)
@@ -1560,8 +1596,17 @@ def run_neo(cfg):
     if not os.path.exists(cfg.outdir_path('causality')):
         ## Run the runNEO.R script and do the causality analyses
         print '  Network edge orienting (NEO)...'
-        ret = subprocess.check_call("cd NEO && Rscript runNEO.R -b %s" % cfg.basedir,
-                                    stderr=subprocess.STDOUT, shell=True)
+        ret = subprocess.check_call(['./NEO/runNEO.R',
+                                         '-b', cfg['basedir'],
+                                         '-o', cfg['outdir'],
+                                         '-r', cfg['all-ratios-file'][0]+tumor+cfg['all-ratios-file'][1],
+                                         '-m', cfg['mirna-file'][0]+tumor+cfg['mirna-file'][1],
+                                         '-s', cfg['som-muts-file'][0]+tumor+cfg['som-muts-file'][1],
+                                         '-p', cfg['som-muts-file'][0]+'patientsSequenced.csv',
+                                         '-e', 'output/biclusterEigengene_'+tumor+'.csv',
+                                         '-t', tumor,
+                                         '-c', str(cpu_count())],
+                                        stderr=subprocess.STDOUT)
         if ret == 1:
             raise Exception('could not run causality analyses')
 

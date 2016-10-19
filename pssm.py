@@ -41,7 +41,7 @@ class PSSM:
 
         # each entry in matches should be a dictionary of
         # {'factor':<factor_name>,'confidence':<confidence_value>}
-        self.matches = []  
+        self.matches = []
         self.expanded_matches = []
 
         # not a defaultdict because it's not serializable
@@ -52,14 +52,14 @@ class PSSM:
 
     def add_match(self, factor, confidence):
         self.matches.append({'factor':factor, 'confidence':confidence})
-    
+
     def add_expanded_match(self, factor, seedFactor):
         self.expanded_matches.append({'factor':factor, 'seedFactor':seedFactor})
 
     def add_correlated_match(self, subset, factor, rho, pValue):
         if not subset in self.__correlated_matches:
             self.__correlated_matches[subset] = []
-        self.correlatedMatches[subset].append({'factor': factor, 'rho': rho, 'pValue': pValue})
+        self.__correlated_matches[subset].append({'factor': factor, 'rho': rho, 'pValue': pValue})
 
     def correlated_matches(self, subset):
         if subset in self.__correlated_matches:
@@ -82,7 +82,8 @@ def to_meme_str(pssm):
         nsites = pssm.nsites
         evalue = pssm.evalue
     elif pssm.de_novo_method == 'weeder':
-        nsites = len(pssm.nsites)
+        #nsites = len(pssm.nsites)
+        nsites = pssm.nsites
         evalue = 0.05
 
     result += 'letter-probability matrix: alength= 4 w= '+str(len(pssm.matrix))+' nsites= '+str(nsites)+' E= '+str(evalue)

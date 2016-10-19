@@ -10,9 +10,11 @@
 
     "tumors": ["ACC", "BLCA", "BRCA", "CESC", "CHOL", "COAD", "DLBC", "ESCA", "GBM", "HNSC", "KICH", "KIRC", "KIRP", "LGG", "LIHC", "LUAD", "LUSC", "MESO", "OV", "PAAD", "PCPG", "PRAD", "READ", "SARC", "SKCM", "STAD", "TGCT", "THCA", "THYM", "UCEC", "UCS", "UVM"],
     "synonyms-file": "/proj/omics4tb/cplaisier/cMonkey/panCancer/commonFiles/synonymsThesaurus.csv.gz",
-    "phenotypes-file": "extras/phenotypes.csv",
+    "phenotypes-file": "/proj/omics4tb/cplaisier/cMonkey/panCancer/commonFiles/phenotypes_panCancer.csv",
     "ratios-file": ["/proj/omics4tb/cplaisier/cMonkey/panCancer/exprs/", "_RNAseq_medianFiltered.tsv"],
     "all-ratios-file": ["/proj/omics4tb/cplaisier/cMonkey/panCancer/exprs_all/", "_RNAseq.csv"],
+    "mirna-file": ["/proj/omics4tb/cplaisier/cMonkey/panCancer/miRNA_seq/", "_miRNAseq.csv"],
+    "som-muts-file": ["/proj/omics4tb/cplaisier/cMonkey/panCancer/som_muts/", "_somMutV5.csv"],
     "mirna-fasta-file": "miRNA/hsa.mature.fa",
     "rand_pssms_dir": "randPSSMs",
     "promoterSeq": "seqs/promoterSeqs_Homo_sapiens.csv.gz",
@@ -49,10 +51,10 @@
 
     "tomtom": { "upstream":
                 {
-                    "motif-files": ["motifs/jasparCoreVertebrata_redundant.json",
-                            "motifs/transfac_2012.1_PSSMs_vertabrate.json",
-                            "motifs/uniprobePSSMsNonRedundant.json",
-                            "motifs/selexPSSMsNonRedundant.json"]
+                    "motif-files": ["/proj/omics4tb/cplaisier/cMonkey/panCancer/commonFiles/jasparCoreVertebrata_redundant.json",
+                            "/proj/omics4tb/cplaisier/cMonkey/panCancer/commonFiles/transfac_2012.1_PSSMs_vertabrate.json",
+                            "/proj/omics4tb/cplaisier/cMonkey/panCancer/commonFiles/uniprobePSSMsNonRedundant.json",
+                            "/proj/omics4tb/cplaisier/cMonkey/panCancer/commonFiles/selexPSSMsNonRedundant.json"]
                 }
             },
     
