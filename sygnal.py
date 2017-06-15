@@ -354,7 +354,7 @@ def anova_oneway(a1, a2, a3, a4):
     res  = f_oneway(a1, a2, a3, a4)
     if not np.isnan(res[0]):
         return res[0], res[1]
-    else: 
+    else:
 	return 'NA', 'NA'
 
 
@@ -369,9 +369,9 @@ def mean_fold_change(a1, a2):
     tmp2 = [i for i in range(len(a2)) if not a2[i]=='NA']
     a2 = [float(a2[i]) for i in tmp2]
     a1_mean = np.mean(a1)
-    a2_mean = np.mean(a2)    
+    a2_mean = np.mean(a2)
     log_fc  = a1_mean - a2_mean
-    res = np.power(2, log_fc) 
+    res = np.power(2, log_fc)
     if not np.isnan(res):
         return res
     else:
@@ -486,6 +486,7 @@ def read_cmonkey_run(cfg, gene_conv):
                             targetscan_3pUTR=False,
                             promoterSeq=cfg['promoterSeq'],
                             p3utrSeq=cfg['p3utrSeq'],
+                            nucFreq=cfg['nucFreq'],
                             geneConv=False)
 
         with open(output_path, 'wb') as pklFile:

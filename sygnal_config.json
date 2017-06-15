@@ -8,27 +8,27 @@
 
     "run-neo": true,
 
-    "synonyms-file": "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/synonymsThesaurus.csv.gz",
-    "phenotypes-file": "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/phenotypes_meso.csv",
-    "ratios-file": "/proj/omics4tb/cplaisier/cMonkey/meso/exprs/mesothelioma_norm_cv_z.tsv",
-    "all-ratios-file": "/proj/omics4tb/cplaisier/cMonkey/meso/exprs_all/mesothelioma_norm.csv",
-    "som-muts-file": "/proj/omics4tb/cplaisier/cMonkey/meso/som_muts/somaticMutationsMatrix.csv",
-    "mirna-fasta-file": "miRNA/hsa.mature.fa",
-    "rand_pssms_dir": "randPSSMs",
-    "promoterSeq": "seqs/promoterSeqs_Homo_sapiens.csv.gz",
-    "p3utrSeq": "seqs/p3utrSeqs_Homo_sapiens.csv.gz",
-    "gene_conv": "extras/entrez2ucsc.csv",
+    "synonyms-file": "../../../commonFiles/synonymsThesaurus.csv.gz",
+    "phenotypes-file": "../../../commonFiles/phenotypes_meso.csv",
+    "ratios-file": "../../../exprs/mesothelioma_norm_cv_z.tsv",
+    "all-ratios-file": "../../../exprs_all/mesothelioma_norm.csv",
+    "som-muts-file": "../../../som_muts/somaticMutationsMatrix.csv",
+    "mirna-fasta-file": "../../../commonFiles/miRNA/hsa.mature.fa",
+    "rand_pssms_dir": "../../../commonFiles/randPSSMs",
+    "promoterSeq": "../../../commonFiles/seqs/promoterSeqs_Homo_sapiens.csv.gz",
+    "p3utrSeq": "../../../commonFiles/seqs/p3utrSeqs_Homo_sapiens.csv.gz",
+    "nucFreq": "../../../commonFiles/seqs/nucFreqs.csv",
     "replication-dataset-names": ["mesoTCGA"],
     
-    "pita": "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/pita_miRNA_sets_entrez_hsa.json",
-    "targetscan": "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/targetScan_miRNA_sets_entrez_hsa.json",
-    "tfbsdb": "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/tfbsDb_plus_and_minus_5000_entrez.json",
+    "pita": "../../../commonFiles/pita_miRNA_sets_entrez_hsa.json",
+    "targetscan": "../../../commonFiles/targetScan_miRNA_sets_entrez_hsa.json",
+    "tfbsdb": "../../../commonFiles/tfbsDb_plus_and_minus_5000_entrez.json",
 
     "meme":  { "upstream": {
                     "nmotifs": 2,
                     "motif-widths": [6, 12],
                     "revcomp": "True",
-                    "bgfile": "seqs/bgFile.meme"
+                    "bgfile": "../../../commonFiles/seqs/bgFile.meme"
                 }
             },
     
@@ -48,15 +48,15 @@
 
     "tomtom": { "upstream":
                 {
-                    "motif-files": ["/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/jasparCoreVertebrata_redundant.json",
-                            "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/transfac_2012.1_PSSMs_vertabrate.json",
-                            "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/uniprobePSSMsNonRedundant.json",
-                            "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/selexPSSMsNonRedundant.json"]
+                    "motif-files": ["../../../commonFiles/motifs/jasparCoreVertebrata_redundant.json",
+                            "../../../commonFiles/motifs/transfac_2012.1_PSSMs_vertabrate.json",
+                            "../../../commonFiles/motifs/uniprobePSSMsNonRedundant.json",
+                            "../../../commonFiles/motifs/selexPSSMsNonRedundant.json"]
                 }
             },
     
-    "tfExpansion": { "tfs": "TF/humanTFs_All.csv",
-                     "tfFamilies": "TF/tfFamilies.csv"
+    "tfExpansion": { "tfs": "../../../commonFiles/TF/humanTFs_All.csv",
+                     "tfFamilies": "../../../commonFiles/TF/tfFamilies.csv"
             },
 
     "mirvestigator": { "seedModel": [6,7,8],

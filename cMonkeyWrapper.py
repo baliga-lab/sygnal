@@ -33,7 +33,7 @@ class cMonkeyWrapper:
                  meme_upstream=False, weeder_upstream=False,
                  weeder_3pUTR=False, tfbs_db=False,
                  pita_3pUTR=False, targetscan_3pUTR=False,
-                 geneConv=False,promoterSeq='NA',p3utrSeq='NA'):
+                 geneConv=False,promoterSeq='NA',p3utrSeq='NA',nucFreq='NA'):
         # What has been run on this cMonkey run, legend = [0: not run, 1: run]
         de_novo_method_upstream = None
         de_novo_method_3pUTR = None
@@ -108,7 +108,7 @@ class cMonkeyWrapper:
                         self.seqs3pUTR[gene] = splitUp[1].strip('"')
         p3utrSeqsFile.close()
         # Now read in nucleotide frequencies
-        nucFreqsFile = open('seqs/nucFreqs.csv','r')
+        nucFreqsFile = open(nucFreq,'r')
         nucFreqsFile.readline()  # Skip header
         upFreq = nucFreqsFile.readline().strip().split(',')
         self.nucFreqsUpstream = {'A': upFreq[1], 'C': upFreq[2],
