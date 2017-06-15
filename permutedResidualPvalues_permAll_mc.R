@@ -3,13 +3,14 @@
 suppressMessages(library(WGCNA))
 suppressMessages(library(multicore))
 suppressMessages(library(getopt))
-
-allowWGCNAThreads()
+suppressMessages(library(parallel))
+suppressMessages(library(impute))
 
 # read command line arguments
 spec = matrix(c(
   'ratios','r',1,'character',
   'outdir', 'o', 1, 'character',
+  'cores', 'c', '1', 'integer',
   'help', 'h', 0, 'logical'
 ), byrow=TRUE, ncol=4)
 
@@ -20,37 +21,50 @@ if (is.null(opt$ratios) || is.null(opt$outdir) || !is.null(opt$help)) {
   q(status=1)
 }
 
-residual <- function( rats ) {
-  d.rows <- rowMeans( rats, na.rm=T )
-  d.cols <- colMeans( rats, na.rm=T )
-  d.all <- mean( d.rows, na.rm=T )
-  rij <- rats + d.all
-  rij <- rij - matrix( d.cols, nrow=nrow( rij ), ncol=ncol( rij ), byrow=T )
-  rij <- rij - matrix( d.rows, nrow=nrow( rij ), ncol=ncol( rij ), byrow=F )
-  average.r <- mean( abs( rij ), na.rm = TRUE )
-  average.r
-}
+#allowWGCNAThreads(opt$cores)
 
-residual.norm <- function( rats, maxRowVar ) {
-  d.rows <- rowMeans( rats, na.rm=T )
-  d.cols <- colMeans( rats, na.rm=T )
-  d.all <- mean( d.rows, na.rm=T )
-  rij <- rats + d.all
-  rij <- rij - matrix( d.cols, nrow=nrow( rij ), ncol=ncol( rij ), byrow=T )
-  rij <- rij - matrix( d.rows, nrow=nrow( rij ), ncol=ncol( rij ), byrow=F )
-  average.r <- mean( abs( rij ), na.rm = TRUE )
-  row.var <- mean( apply( rats, 1, var, use = "pairwise.complete.obs" ), na.rm=T )
-  if ( is.na( row.var ) || row.var > maxRowVar ) row.var <- maxRowVar
-  average.r <- average.r / row.var
-  average.r
-}
-getEigengene <- function (expr, rows, impute = TRUE, nPC = 1, align = "along average", 
-    excludeGrey = FALSE, grey = ifelse(is.numeric(rows), 0, 
+getEigengene <- function (expr, colors, impute = TRUE, nPC = 1, align = "along average", 
+    excludeGrey = FALSE, grey = ifelse(is.numeric(colors), 0, 
         "grey"), subHubs = FALSE, trapErrors = FALSE, returnValidOnly = trapErrors, 
     softPower = 1, scale = TRUE, verbose = 0, indent = 0) 
 {
-    nVarExplained = nPC
-    modlevels = 1:length(rows)
+    spaces = indentSpaces(indent)
+    if (verbose == 1) 
+        printFlush(paste(spaces, "moduleEigengenes: Calculating", 
+            nlevels(as.factor(colors)), "module eigengenes in given set."))
+    if (is.null(expr)) {
+        stop("moduleEigengenes: Error: expr is NULL. ")
+    }
+    if (is.null(colors)) {
+        print("moduleEigengenes: Error: colors is NULL. ")
+        stop()
+    }
+    if (is.null(dim(expr)) || length(dim(expr)) != 2) 
+        stop("moduleEigengenes: Error: expr must be two-dimensional.")
+    #if (dim(expr)[2] != length(colors)) 
+    #    stop("moduleEigengenes: Error: ncol(expr) and length(colors) must be equal (one color per gene).")
+    #if (is.factor(colors)) {
+    #    nl = nlevels(colors)
+    #    nlDrop = nlevels(colors[, drop = TRUE])
+    #    if (nl > nlDrop) 
+    #        stop(paste("Argument 'colors' contains unused levels (empty modules). ", 
+    #            "Use colors[, drop=TRUE] to get rid of them."))
+    #}
+    if (softPower < 0) 
+        stop("softPower must be non-negative")
+    alignRecognizedValues = c("", "along average")
+    if (!is.element(align, alignRecognizedValues)) {
+        printFlush(paste("ModulePrincipalComponents: Error:", 
+            "parameter align has an unrecognised value:", align, 
+            "; Recognized values are ", alignRecognizedValues))
+        stop()
+    }
+    maxVarExplained = 10
+    if (nPC > maxVarExplained) 
+        warning(paste("Given nPC is too large. Will use value", 
+            maxVarExplained))
+    nVarExplained = min(nPC, maxVarExplained)
+    modlevels = 1:length(colors)
     PrinComps = data.frame(matrix(NA, nrow = dim(expr)[[1]], 
         ncol = length(modlevels)))
     averExpr = data.frame(matrix(NA, nrow = dim(expr)[[1]], ncol = length(modlevels)))
@@ -59,39 +73,138 @@ getEigengene <- function (expr, rows, impute = TRUE, nPC = 1, align = "along ave
     validAEs = rep(FALSE, length(modlevels))
     isPC = rep(TRUE, length(modlevels))
     isHub = rep(FALSE, length(modlevels))
-    validColors = rows
+    validColors = colors
     names(PrinComps) = paste(moduleColor.getMEprefix(), modlevels, 
         sep = "")
     names(averExpr) = paste("AE", modlevels, sep = "")
     for (i in c(1:length(modlevels))) {
-        modulename = modlevels[i]
-        restrict1 = rows[[modulename]]
-        datModule = as.matrix(t(expr[ ,restrict1]))
-        n = dim(datModule)[1]
-        p = dim(datModule)[2]
-        pc = try({
-            if (scale) 
-                datModule = t(scale(t(datModule)))
-            svd1 = svd(datModule, nu = min(n, p, nPC), nv = min(n, 
-                p, nPC))
-            veMat = cor(svd1$v[, c(1:min(n, p, nVarExplained))], 
-                t(datModule), use = "p")
-            varExpl[c(1:min(n, p, nVarExplained)), i] = apply(veMat^2, 
-                1, mean, na.rm = TRUE)
-            svd1$v[, 1]
-        }, silent = TRUE)
-        PrinComps[, i] = pc
-        ae = try({
-            if (isPC[i]) 
-                scaledExpr = scale(t(datModule))
-            averExpr[, i] = apply(scaledExpr, 1, mean, na.rm = TRUE)
-            if (align == "along average") {
-                if (cor(averExpr[, i], PrinComps[, i], use = "p") < 
-                0) 
-                PrinComps[, i] = -PrinComps[, i]
+        if (length(colors[[i]])>0) {
+            if (verbose > 1) 
+                printFlush(paste(spaces, "moduleEigengenes : Working on ME for module", 
+                    modlevels[i]))
+            modulename = modlevels[i]
+            restrict1 = colors[[modulename]]
+            #if (verbose > 2) 
+            #    printFlush(paste(spaces, " ...", sum(restrict1), 
+            #        "genes"))
+            datModule = as.matrix(t(expr[ ,restrict1]))
+            n = dim(datModule)[1]
+            p = dim(datModule)[2]
+            pc = try({
+                if (nrow(datModule) > 1 && impute) {
+                    seedSaved = FALSE
+                    if (exists(".Random.seed")) {
+                      saved.seed = .Random.seed
+                      seedSaved = TRUE
+                    }
+                    if (verbose > 5) 
+                      printFlush(paste(spaces, " ...imputing missing data"))
+                    datModule = impute.knn(as.matrix(datModule), 
+                      k = min(10, nrow(datModule) - 1))
+                    try({
+                      if (!is.null(datModule$data)) 
+                        datModule = datModule$data
+                    }, silent = TRUE)
+                    if (seedSaved) 
+                      .Random.seed <<- saved.seed
+                }
+                if (verbose > 5) 
+                    printFlush(paste(spaces, " ...scaling"))
+                if (scale) 
+                    datModule = t(scale(t(datModule)))
+                if (verbose > 5) 
+                    printFlush(paste(spaces, " ...calculating SVD"))
+                svd1 = svd(datModule, nu = min(n, p, nPC), nv = min(n, 
+                    p, nPC))
+                if (verbose > 5) 
+                    printFlush(paste(spaces, " ...calculating PVE"))
+                veMat = cor(svd1$v[, c(1:min(n, p, nVarExplained))], 
+                    t(datModule), use = "p")
+                varExpl[c(1:min(n, p, nVarExplained)), i] = apply(veMat^2, 
+                    1, mean, na.rm = TRUE)
+                svd1$v[, 1]
+            }, silent = TRUE)
+            if (class(pc) == "try-error") {
+                if ((!subHubs) && (!trapErrors)) 
+                    stop(pc)
+                if (subHubs) {
+                    if (verbose > 0) {
+                      printFlush(paste(spaces, " ..principal component calculation for module", 
+                        modulename, "failed with the following error:"))
+                      printFlush(paste(spaces, "     ", pc, spaces, 
+                        " ..hub genes will be used instead of principal components."))
+                    }
+                    isPC[i] = FALSE
+                    pc = try({
+                      scaledExpr = scale(t(datModule))
+                      covEx = cov(scaledExpr, use = "p")
+                      modAdj = abs(covEx)^softPower
+                      kIM = (apply(modAdj, 1, sum, na.rm = TRUE))^3
+                      if (max(kIM, na.rm = TRUE) > 1) 
+                        kIM = kIM - 1
+                      kIM[is.na(kIM)] = 0
+                      hub = which.max(kIM)
+                      alignSign = sign(covEx[, hub])
+                      alignSign[is.na(alignSign)] = 0
+                      isHub[i] = TRUE
+                      pcxMat = scaledExpr * matrix(kIM * alignSign, 
+                        nrow = nrow(scaledExpr), ncol = ncol(scaledExpr), 
+                        byrow = TRUE)/sum(kIM)
+                      pcx = apply(pcxMat, 1, sum, na.rm = TRUE)
+                      varExpl[1, i] = mean(cor(pcx, t(datModule), 
+                        use = "p")^2, na.rm = TRUE)
+                      pcx
+                    }, silent = TRUE)
+                }
             }
-            0
-        }, silent = TRUE)
+            if (class(pc) == "try-error") {
+                if (!trapErrors) 
+                    stop(pc)
+                if (verbose > 0) {
+                    printFlush(paste(spaces, " ..ME calculation of module", 
+                      modulename, "failed with the following error:"))
+                    printFlush(paste(spaces, "     ", pc, spaces, 
+                      " ..the offending module has been removed."))
+                }
+                warning(paste("Eigengene calculation of module", 
+                    modulename, "failed with the following error \n     ", 
+                    pc, "The offending module has been removed.\n"))
+                validMEs[i] = FALSE
+                isPC[i] = FALSE
+                isHub[i] = FALSE
+                validColors[restrict1] = grey
+            }
+            else {
+                PrinComps[, i] = pc
+                ae = try({
+                    if (isPC[i]) 
+                      scaledExpr = scale(t(datModule))
+                    averExpr[, i] = apply(scaledExpr, 1, mean, na.rm = TRUE)
+                    if (align == "along average") {
+                      if (verbose > 4) 
+                        printFlush(paste(spaces, " .. aligning module eigengene with average expression."))
+                      if (cor(averExpr[, i], PrinComps[, i], use = "p") < 
+                        0) 
+                        PrinComps[, i] = -PrinComps[, i]
+                    }
+                    0
+                }, silent = TRUE)
+                if (class(ae) == "try-error") {
+                    if (!trapErrors) 
+                      stop(ae)
+                    if (verbose > 0) {
+                      printFlush(paste(spaces, " ..Average expression calculation of module", 
+                        modulename, "failed with the following error:"))
+                      printFlush(paste(spaces, "     ", ae, spaces, 
+                        " ..the returned average expression vector will be invalid."))
+                    }
+                    warning(paste("Average expression calculation of module", 
+                      modulename, "failed with the following error \n     ", 
+                      ae, "The returned average expression vector will be invalid.\n"))
+                }
+                validAEs[i] = !(class(ae) == "try-error")
+            }
+        }
     }
     allOK = (sum(!validMEs) == 0)
     if (returnValidOnly && sum(!validMEs) > 0) {
@@ -111,13 +224,23 @@ getEigengene <- function (expr, rows, impute = TRUE, nPC = 1, align = "along ave
         validAEs = validAEs, allAEOK = allAEOK)
 }
 
+# Read in expression ratios file
+#ratios <- read.csv(file=opt$ratios, as.is=T, header=T,row.names=1 )
+ratios <- read.table(file=opt$ratios, as.is=T, header=T,row.names=1,sep='\t')
+ratios = ratios[,which(sapply(colnames(ratios), function(x) { sum(is.na(ratios[,x])) })!=length(rownames(ratios)))]
+ratios = ratios[which(rowSums(ratios)!=0),]
+dim(ratios)
+colLen = length(colnames(ratios))
+#ratios = ratios[which(sapply(rownames(ratios), function(x) { sum(is.na(ratios[x,]))/colLen })<=0.8),]
+#dim(ratios)
+
 # Read in genes for each cluster
 infile.gene <- paste(opt$outdir, 'cluster.members.genes.txt', sep='/')
 d1 = read.csv(infile.gene,header=F)
 biclustMembership.gene = list()
 allGenes = c()
 for(j in 1:length(d1[,1])) {
-    biclustMembership.gene[[j]] = strsplit(as.character(d1[j,]),split=' ')[[1]][-1]
+    biclustMembership.gene[[j]] = intersect(strsplit(as.character(d1[j,]),split=' ')[[1]][-1],rownames(ratios))
 }
 
 # Read in conditions for each cluster
@@ -129,20 +252,13 @@ for(j in 1:length(d1[,1])) {
     biclustMembership.cond[[j]] = strsplit(as.character(d1[j,]),split=' ')[[1]][-1]
 }
 
-# Read in expression ratios file
-ratios <- read.delim(file=opt$ratios, sep="\t", as.is=T, header=T,row.names=1 )
-#rownames(ratios) <- toupper(rownames(ratios))
-maxRowVar = mean( apply( ratios, 1, var, use="pair" ), na.rm=T )
-
 # Calculate the residuals for all clusters in the second dataset
 ks = length(biclustMembership.gene)
-outNames = c('n.rows','n.cols','orig.resid','avg.perm.resid','perm.p','orig.resid.norm','avg.norm.perm.resid','norm.perm.p','pc1.var.exp','avg.pc1.var.exp','pc1.perm.p')
-m1 = matrix(ncol=length(outNames),nrow=ks,dimnames=list(1:ks,outNames))
 #permutations = 1/0.05*ks
 permutations = 1000
-print(paste('Running ',permutations,' permutations...',sep=''))
+print(paste('Running ',permutations,' permutations (cores = ',opt$cores,')...',sep=''))
 m1 = do.call(rbind, mclapply(1:ks, function(k) {
-        r1 = rep(NA,12)
+        r1 = rep(NA,6)
         r1[1] = k
         # Get and add number of rows and columns
         k.rows = biclustMembership.gene[[k]]
@@ -150,14 +266,6 @@ m1 = do.call(rbind, mclapply(1:ks, function(k) {
         if(length(k.rows)>1 && length(k.cols)>1) {
             r1[2] = length(k.rows)
             r1[3] = length(k.cols)
-            r1[4] = residual(as.matrix(ratios[k.rows,k.cols]))
-            sub = sapply(1:permutations, function(i) { residual(as.matrix(ratios[sample(rownames(ratios),r1[2]), sample(colnames(ratios),r1[3])])) })
-            r1[5] = mean(sub)
-            r1[6] = length(which(sub <= r1[4]))/permutations
-            r1[7] = residual.norm(as.matrix(ratios[k.rows,k.cols]),maxRowVar)
-            sub = sapply(1:permutations, function(i) { residual.norm(as.matrix(ratios[sample(rownames(ratios),r1[2]), sample(colnames(ratios),r1[3])]), maxRowVar) })
-            r1[8] = mean(sub)
-            r1[9] = length(which(sub <= r1[7]))/permutations
             testEm.rows = list()
             testEm.rows[[1]] = k.rows
             for( i in 2:(permutations+1)) {
@@ -165,14 +273,14 @@ m1 = do.call(rbind, mclapply(1:ks, function(k) {
             }
             eg1 = getEigengene(t(ratios),testEm.rows)
             var.exp = t(eg1$varExplained)[,1]
-            r1[10] = var.exp[1]
-            r1[11] = mean(var.exp[2:length(var.exp)],na.rm=TRUE)
-            r1[12] = length(which(na.omit(var.exp[2:length(var.exp)]) >= r1[10]))/length(na.omit(var.exp[2:length(var.exp)]))
+            r1[4] = var.exp[1]
+            r1[5] = mean(var.exp[2:length(var.exp)],na.rm=TRUE)
+            r1[6] = length(which(na.omit(var.exp[2:length(var.exp)]) >= r1[4]))/length(na.omit(var.exp[2:length(var.exp)]))
         }
         print(c(k,as.numeric(r1)))
-    }))
-outNames = c('bicluster','bicluster','n.rows','n.cols','orig.resid','avg.perm.resid','perm.p','orig.resid.norm','avg.norm.perm.resid','norm.perm.p','pc1.var.exp','avg.pc1.var.exp','pc1.perm.p')
+    }, mc.cores=opt$cores))
+outNames = c('bicluster','bicluster','n.rows','n.cols','pc1.var.exp','avg.pc1.var.exp','pc1.perm.p')
 colnames(m1) = outNames
-outfile <- paste(opt$outdir, 'residualPermutedPvalues_permAll.csv', sep='/')
+outfile <- paste(opt$outdir, paste('residualPermutedPvalues_permAll.csv',sep=''), sep='/')
 write.csv(m1,file=outfile)
 

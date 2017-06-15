@@ -1,10 +1,4 @@
 {
-    "subsets": [ "all"
-            ],
-
-    "subsets_pos": { "all": [0, 422]
-            },
-
     "max-evalue": 10.0,
     "rho-cut": 0.3,
     "pvalue-cut": 0.05,
@@ -12,17 +6,23 @@
     "leo-nb-atob": 0.5,
     "mlogp-m-atob": 0.05,
 
-    "synonyms-file": "../synonymThesaurus.csv.gz",
-    "phenotypes-file": "extras/phenotypes.csv",
-    "ratios-file": "../gbmTCGA_exprMat_medianFiltered.tsv",
-    "all-ratios-file": "expression/gbmTCGA_exprMat.tsv",
+    "run-neo": true,
+
+    "synonyms-file": "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/synonymsThesaurus.csv.gz",
+    "phenotypes-file": "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/phenotypes_meso.csv",
+    "ratios-file": "/proj/omics4tb/cplaisier/cMonkey/meso/exprs/mesothelioma_norm_cv_z.tsv",
+    "all-ratios-file": "/proj/omics4tb/cplaisier/cMonkey/meso/exprs_all/mesothelioma_norm.csv",
+    "som-muts-file": "/proj/omics4tb/cplaisier/cMonkey/meso/som_muts/somaticMutationsMatrix.csv",
     "mirna-fasta-file": "miRNA/hsa.mature.fa",
     "rand_pssms_dir": "randPSSMs",
-    "promoterSeq": "seqs/promoterSeqs_Homo_sapiens_gs_fp.csv.gz",
-    "p3utrSeq": "seqs/p3utrSeqs_Homo_sapiens_gs.csv.gz",
+    "promoterSeq": "seqs/promoterSeqs_Homo_sapiens.csv.gz",
+    "p3utrSeq": "seqs/p3utrSeqs_Homo_sapiens.csv.gz",
     "gene_conv": "extras/entrez2ucsc.csv",
-
-    "replication-dataset-names": ["French", "REMBRANDT", "GSE7696"],
+    "replication-dataset-names": ["mesoTCGA"],
+    
+    "pita": "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/pita_miRNA_sets_entrez_hsa.json",
+    "targetscan": "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/targetScan_miRNA_sets_entrez_hsa.json",
+    "tfbsdb": "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/tfbsDb_plus_and_minus_5000_entrez.json",
 
     "meme":  { "upstream": {
                     "nmotifs": 2,
@@ -48,10 +48,10 @@
 
     "tomtom": { "upstream":
                 {
-                    "motif-files": ["motifs/jasparCoreVertebrata_redundant.json",
-                            "motifs/transfac_2012.1_PSSMs_vertabrate.json",
-                            "motifs/uniprobePSSMsNonRedundant.json",
-                            "motifs/selexPSSMsNonRedundant.json"]
+                    "motif-files": ["/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/jasparCoreVertebrata_redundant.json",
+                            "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/transfac_2012.1_PSSMs_vertabrate.json",
+                            "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/uniprobePSSMsNonRedundant.json",
+                            "/proj/omics4tb/cplaisier/cMonkey/meso/commonFiles/selexPSSMsNonRedundant.json"]
                 }
             },
     
@@ -69,6 +69,5 @@
                        "species": "hsa"
     },
     
-    "postprocessing-result-file": "postProcessed_gbmTCGA_pita.csv",
     "first-principal-comps-result-file": "biclusterFirstPrincComponents.csv"
 }
