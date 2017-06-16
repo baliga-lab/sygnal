@@ -886,27 +886,28 @@ def post_process(arg):
     pc1_1 = [fpc[i] for i in result_conds]
 
     # Phenotype tests with patient traits
-    for phenotype in PHENOTYPES:
-        if phenotype=='sex':
-            case = [fpc[i] for i in result_conds if phenotypes[phenotype][i]=='M']
-            control = [fpc[i] for i in result_conds if phenotypes[phenotype][i]=='F']
-        else:
-            case = [fpc[i] for i in result_conds if phenotypes[phenotype][i]=='1']
-            control = [fpc[i] for i in result_conds if phenotypes[phenotype][i]=='0']
+    if not g_phenotypes=='NA':
+        for phenotype in PHENOTYPES:
+            if phenotype=='sex':
+                case = [fpc[i] for i in result_conds if phenotypes[phenotype][i]=='M']
+                control = [fpc[i] for i in result_conds if phenotypes[phenotype][i]=='F']
+            else:
+                case = [fpc[i] for i in result_conds if phenotypes[phenotype][i]=='1']
+                control = [fpc[i] for i in result_conds if phenotypes[phenotype][i]=='0']
 
-        attr_name = phenotype
-        t_stat, t_pvalue = ttest(case, control)
-        attributes[attr_name] = {'T': t_stat, 'pValue': t_pvalue }
+            attr_name = phenotype
+            t_stat, t_pvalue = ttest(case, control)
+            attributes[attr_name] = {'T': t_stat, 'pValue': t_pvalue }
 
-    # Association of bicluster expression with patient survival
-    surv = [phenotypes['survival'][c] for c in result_conds]
-    dead = [phenotypes['status'][c] for c in result_conds]
-    age = [phenotypes['age_at_surgery'][c] for c in result_conds]
-    sex = [convertSex(phenotypes['sex'][c]) for c in result_conds]
-    surv_0, surv_age, surv_ageSex = survival(surv, dead, pc1_1, age, sex)
-    attributes['Survival'] = {'z': surv_0[0], 'pValue': surv_0[1] }
-    attributes['Survival.AGE'] = {'z': surv_age[0], 'pValue': surv_age[1]}
-    attributes['Survival.AGE_SEX'] = {'z': surv_ageSex[0], 'pValue': surv_ageSex[1]}
+        # Association of bicluster expression with patient survival
+        surv = [phenotypes['survival'][c] for c in result_conds]
+        dead = [phenotypes['status'][c] for c in result_conds]
+        age = [phenotypes['age_at_surgery'][c] for c in result_conds]
+        sex = [convertSex(phenotypes['sex'][c]) for c in result_conds]
+        surv_0, surv_age, surv_ageSex = survival(surv, dead, pc1_1, age, sex)
+        attributes['Survival'] = {'z': surv_0[0], 'pValue': surv_0[1] }
+        attributes['Survival.AGE'] = {'z': surv_age[0], 'pValue': surv_age[1]}
+        attributes['Survival.AGE_SEX'] = {'z': surv_ageSex[0], 'pValue': surv_ageSex[1]}
     return attributes
 
 def __read_ratios(cfg):
@@ -987,12 +988,13 @@ def __get_phenotype_info(cfg, c1):
 
 
 def __do_postprocess(cfg, c1, phenotypes):
-    global RATIOS
+    global RATIOS, g_phenotypes
 
     multi = False
     postprocess_pkl_path = cfg.outdir_path('postProcessed.pkl')
     if not os.path.exists(postprocess_pkl_path):
         RATIOS = __read_ratios(cfg)
+        g_phenotypes = phenotypes
         args = [[bicluster, c1.biclusters[bicluster], phenotypes] for bicluster in c1.biclusters]
         if multi:
             pool = Pool()
@@ -1577,10 +1579,11 @@ def perform_postprocessing(cfg, c1, entrez2id, mirna_ids):
             dump_cluster_members(cfg, c1)
             __get_cluster_eigengenes(cfg, c1)
             __get_cluster_variance_explained(cfg, c1)
-            phenotypes = __get_phenotype_info(cfg, c1)
-
+            if not cfg['phenotypes-file']=='NA':
+                phenotypes = __get_phenotype_info(cfg, c1)
+            else:
+                phenotypes = 'NA'
             __do_postprocess(cfg, c1, phenotypes)
-
             __tomtom_upstream_motifs(cfg)
             tf_name2entrezid, tf_families = __expand_tf_factor_list(entrez2id)
             exp_data, all_names = __correlate_tfs_with_cluster_eigengenes(cfg, c1)
