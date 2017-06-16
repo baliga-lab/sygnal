@@ -138,6 +138,13 @@ def weeder(bicluster, seqfile, bgfile, size, enriched, revcomp):
     weeder_args = "%s %s %s %s" % (seqfile, bgfile, size, enriched)
     if revcomp:
         weeder_args += ' S'
+
+    try:
+        if os.path.exists(cfg['weeder']['freqfiles-dir']):
+            weeder_args += ' F%s' % cfg['weeder']['freqfiles-dir']
+    except:
+        pass
+
     errout = open(cfg['tmpdir']+'/weeder/stderr.out','w')
     weeder_proc = Popen("weederlauncher %s" % weeder_args, shell=True, stdout=PIPE, stderr=errout)
     output = weeder_proc.communicate()

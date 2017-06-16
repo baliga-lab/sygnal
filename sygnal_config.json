@@ -33,20 +33,22 @@
                     "bgfile": "../../../commonFiles/seqs/bgFile.meme"
                 }
             },
-    
-    "weeder": { "upstream": {
-                    "bgfile": "MM",
-                    "size": "small",
-                    "enriched": "T50",
-                    "revcomp": "True"
-                },
-                "3pUTR": {
-                    "bgfile": "MM3P",
-                    "size": "small",
-                    "enriched": "T50",
-                    "revcomp": "False"
-                }
-            },
+
+    "weeder": {
+        "freqfiles-dir": "../../../commonFiles/FreqFiles",
+        "upstream": {
+            "bgfile": "MM",
+            "size": "small",
+            "enriched": "T50",
+            "revcomp": "True"
+        },
+        "3pUTR": {
+            "bgfile": "MM3P",
+            "size": "small",
+            "enriched": "T50",
+            "revcomp": "False"
+        }
+    },
 
     "tomtom": { "upstream":
                 {
