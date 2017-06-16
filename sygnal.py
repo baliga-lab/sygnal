@@ -1284,7 +1284,7 @@ def __get_permuted_pvalues_for_upstream_meme_motifs(cfg, c1):
         for i in range(5, 70, 5):  # [5,10,15,... ,65]:
             stdout.write(str(i)+' ')
             stdout.flush()
-            filepath = os.path.join(cfg['rand_pssms_dir'], 'pssms_upstream_%d.json' % i)
+            filepath = os.path.join(cfg['rand-pssms-dir'], 'pssms_upstream_%d.json' % i)
             randPssmsDict[i] = pssm_mod.load_pssms_json(filepath)
 
             for pssm1 in randPssmsDict[i]:
@@ -1409,10 +1409,10 @@ def __convert_mirvestigator_3putr_results(cfg, c1, mirna_ids):
 
     # Compile results to put them into the postProcessed
     print 'Get perumted p-values for 3\' UTR motifs...'
-    with open('randPSSMs/weederRand.pkl', 'rb') as infile:
+    with open(cfg['rand-pssms-dir']+'/weederRand.pkl', 'rb') as infile:
         weederRand = cPickle.load(infile)
 
-    with open('randPSSMs/weederRand_all.pkl', 'rb') as infile:
+    with open(cfg['rand-pssms-dir']+'/weederRand_all.pkl', 'rb') as infile:
         weederRand_all = cPickle.load(infile)
 
     clustSizes = sorted(weederRand['8bp'].keys())
@@ -1482,14 +1482,18 @@ def __read_replication_pvalues(cfg, c1):
     It is hardcodes the dataset names and is inherently redundant. The way
     to go is to ensure uniform input and output formats and then use the same
     code to handle all data set types."""
-    # Read in replication p-values - mesoTCGA Dataset
-    print 'Loading replication p-values...'
-    with open(cfg.outdir_path('replicationPvalues_mesoTCGA.csv'), 'r') as infile:
-        infile.readline()
-        for line in infile:
-            splitUp = line.strip().split(',')
-            bicluster = c1.biclusters[int(splitUp[0].replace('"',''))]
-            bicluster.add_attribute(key='replication_mesoTCGA',value=dict(zip(['mesoTCGA_var.exp','mesoTCGA_avg.pc1.var.exp','mesoTCGA_pc1.perm.p','mesoTCGA_OS','mesoTCGA_OS.p','mesoTCGA_OS.age','mesoTCGA_OS.age.p', 'mesoTCGA_OS.age.sex','mesoTCGA_OS.age.sex.p'],splitUp[3:])))
+    # Run replication on all datasets
+    run_sets = [name for name in cfg["replication-dataset-names"]
+                if not os.path.exists(cfg.outdir_path('replicationPvalues_%s.csv' % name))]
+    for run_set in run_sets:
+        # Read in replication p-values - mesoTCGA Dataset
+        print 'Loading replication p-values...'
+        with open(cfg.outdir_path('replicationPvalues_%s.csv' % run_set), 'r') as infile:
+            infile.readline()
+            for line in infile:
+                splitUp = line.strip().split(',')
+                bicluster = c1.biclusters[int(splitUp[0].replace('"',''))]
+                bicluster.add_attribute(key='replication_'+run_set,value=dict(zip([run_set+'_var.exp',run_set+'_avg.pc1.var.exp',run_set+'_pc1.perm.p',run_set+'_OS',run_set+'_OS.p',run_set+'_OS.age',run_set+'_OS.age.p', run_set+'_OS.age.sex',run_set+'_OS.age.sex.p'],splitUp[3:])))
     print 'Done.\n'
 
 
@@ -1535,7 +1539,7 @@ def __make_functional_enrichment(cfg, c1):
         ret = subprocess.check_call(['./enrichment.R',
                                     '-o', cfg['outdir'],
                                     '-l', cfg['enrichment-library']],
-                                    stderr=subprocess.STDOUT, shell=True)
+                                    stderr=subprocess.STDOUT)
         if ret == 1:
             raise Exception('could not run functional enrichment')
 
