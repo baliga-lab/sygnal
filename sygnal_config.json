@@ -14,7 +14,7 @@
     "all-ratios-file": "../../../exprs_all/gexp_cMonkey_norm_all_ComBat.csv",
     "som-muts-file": "NA",
     "mirna-fasta-file": "../../../commonFiles/miRNA/mmu.mature.fa",
-    "rand_pssms_dir": "../../../commonFiles/randPSSMs",
+    "rand-pssms-dir": "../../../commonFiles/randPSSMs",
     "promoterSeq": "../../../commonFiles/seqs/promoterSeqs_Mus_musculus.csv.gz",
     "p3utrSeq": "../../../commonFiles/seqs/p3utrSeqs_Mus_musculus.csv.gz",
     "nucFreq": "../../../commonFiles/seqs/nucFreqs.csv",
