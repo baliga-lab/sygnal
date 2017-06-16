@@ -872,21 +872,20 @@ def post_process(arg):
     attributes['k.rows'] = bicluster.num_genes()
     attributes['k.cols'] = bicluster.num_conditions()
 
-    # Get matrix of expression for genes
-    genes = bicluster.genes
-
-    # Get first principal component variance explained
-    key0 = RATIOS.keys()[0]
-    gene0_conditions = set(RATIOS[key0].keys())
-    dtd_conditions = set(phenotypes['survival'].keys())
-    g0_dtd_conds = gene0_conditions.intersection(dtd_conditions)
-    fpc = bicluster.attributes['pc1']
-    fpc_conds = fpc.keys()
-    result_conds = g0_dtd_conds.intersection(fpc_conds)
-    pc1_1 = [fpc[i] for i in result_conds]
-
     # Phenotype tests with patient traits
     if not g_phenotypes=='NA':
+        # Get matrix of expression for genes
+        genes = bicluster.genes
+
+        # Get first principal component variance explained
+        key0 = RATIOS.keys()[0]
+        gene0_conditions = set(RATIOS[key0].keys())
+        dtd_conditions = set(phenotypes['survival'].keys())
+        g0_dtd_conds = gene0_conditions.intersection(dtd_conditions)
+        fpc = bicluster.attributes['pc1']
+        fpc_conds = fpc.keys()
+        result_conds = g0_dtd_conds.intersection(fpc_conds)
+        pc1_1 = [fpc[i] for i in result_conds]
         for phenotype in PHENOTYPES:
             if phenotype=='sex':
                 case = [fpc[i] for i in result_conds if phenotypes[phenotype][i]=='M']
@@ -1526,7 +1525,9 @@ def __make_functional_enrichment(cfg, c1):
     # Note that these are external to the project and have hard-coded paths !!!
     if not os.path.exists(cfg.outdir_path('biclusterEnrichment_GOBP.csv')):
         print 'Run functional enrichment...'
-        ret = subprocess.check_call("./enrichment.R -o "+cfg['outdir'], # +" -c "+cfg['gene_conv']
+        ret = subprocess.check_call(['./enrichment.R',
+                                    '-o', cfg['outdir'],
+                                    '-l', cfg['enrichment-library']],
                                     stderr=subprocess.STDOUT, shell=True)
         if ret == 1:
             raise Exception('could not run functional enrichment')

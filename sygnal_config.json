@@ -9,20 +9,22 @@
     "run-neo": true,
 
     "synonyms-file": "../../../commonFiles/synonymsThesaurus.csv.gz",
-    "phenotypes-file": "../../../commonFiles/phenotypes_meso.csv",
-    "ratios-file": "../../../exprs/mesothelioma_norm_cv_z.tsv",
-    "all-ratios-file": "../../../exprs_all/mesothelioma_norm.csv",
-    "som-muts-file": "../../../som_muts/somaticMutationsMatrix.csv",
-    "mirna-fasta-file": "../../../commonFiles/miRNA/hsa.mature.fa",
+    "phenotypes-file": "NA",
+    "ratios-file": "../../../exprs/gexp_cMonkey_norm_all_ComBat_preProcessed_8000.tsv",
+    "all-ratios-file": "../../../exprs_all/gexp_cMonkey_norm_all_ComBat.csv",
+    "som-muts-file": "NA",
+    "mirna-fasta-file": "../../../commonFiles/miRNA/mmu.mature.fa",
     "rand_pssms_dir": "../../../commonFiles/randPSSMs",
-    "promoterSeq": "../../../commonFiles/seqs/promoterSeqs_Homo_sapiens.csv.gz",
-    "p3utrSeq": "../../../commonFiles/seqs/p3utrSeqs_Homo_sapiens.csv.gz",
+    "promoterSeq": "../../../commonFiles/seqs/promoterSeqs_Mus_musculus.csv.gz",
+    "p3utrSeq": "../../../commonFiles/seqs/p3utrSeqs_Mus_musculus.csv.gz",
     "nucFreq": "../../../commonFiles/seqs/nucFreqs.csv",
-    "replication-dataset-names": ["mesoTCGA"],
+    "replication-dataset-names": [],
+    "enrichment-library": "org.Mm.eg.db",
+    "gene_conv": false,
     
-    "pita": "../../../commonFiles/pita_miRNA_sets_entrez_hsa.json",
-    "targetscan": "../../../commonFiles/targetScan_miRNA_sets_entrez_hsa.json",
-    "tfbsdb": "../../../commonFiles/tfbsDb_plus_and_minus_5000_entrez.json",
+    "pita": "../../../commonFiles/pita_miRNA_sets_entrez_mmu.json",
+    "targetscan": "../../../commonFiles/targetScan_miRNA_sets_entrez_mmu.json",
+    "tfbsdb": "../../../commonFiles/tfbsDb_plus_and_minus_5000_entrez_mmu.json",
 
     "meme":  { "upstream": {
                     "nmotifs": 2,
@@ -33,13 +35,13 @@
             },
     
     "weeder": { "upstream": {
-                    "bgfile": "HS",
+                    "bgfile": "MM",
                     "size": "small",
                     "enriched": "T50",
                     "revcomp": "True"
                 },
                 "3pUTR": {
-                    "bgfile": "HS3P",
+                    "bgfile": "MM3P",
                     "size": "small",
                     "enriched": "T50",
                     "revcomp": "False"
@@ -55,8 +57,8 @@
                 }
             },
     
-    "tfExpansion": { "tfs": "../../../commonFiles/TF/humanTFs_All.csv",
-                     "tfFamilies": "../../../commonFiles/TF/tfFamilies.csv"
+    "tfExpansion": { "tfs": "../../../commonFiles/TF/mouseTFs_All.csv",
+                     "tfFamilies": "../../../commonFiles/TF/tfFamilies_musculus.csv"
             },
 
     "mirvestigator": { "seedModel": [6,7,8],
@@ -66,7 +68,7 @@
                        "p3": "True",
                        "wobble": "False",
                        "wobbleCut": 0.25,
-                       "species": "hsa"
+                       "species": "mmu"
     },
     
     "first-principal-comps-result-file": "biclusterFirstPrincComponents.csv"
