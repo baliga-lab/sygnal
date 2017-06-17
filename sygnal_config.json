@@ -6,7 +6,8 @@
     "leo-nb-atob": 0.5,
     "mlogp-m-atob": 0.05,
 
-    "run-neo": true,
+    "run-neo": false,
+    "hallmarks": false,
 
     "synonyms-file": "../../../commonFiles/synonymsThesaurus.csv.gz",
     "phenotypes-file": "NA",
