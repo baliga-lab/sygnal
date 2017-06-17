@@ -1617,7 +1617,8 @@ def perform_postprocessing(cfg, c1, entrez2id, mirna_ids):
         __read_replication_pvalues(cfg, c1)
         __make_permuted_pvalues(cfg, c1)
         __make_functional_enrichment(cfg, c1)
-        __make_go_term_semantic_similarity(cfg, c1)
+        if cfg['hallmarks']:
+            __make_go_term_semantic_similarity(cfg, c1)
 
         print 'Dumping Final cMonkey Object:'
         with open(pkl_path, 'wb') as outfile:
@@ -1739,7 +1740,8 @@ def write_final_result(cfg, c1, mirna_ids_rev):
     #################################################################
     print 'Write postProcessedVFinal.csv...'
     postOut = []
-    hallmarksOfCancer = c1.biclusters[1].attributes['hallmarksOfCancer'].keys()
+    if cfg['hallmarks']:
+        hallmarksOfCancer = c1.biclusters[1].attributes['hallmarksOfCancer'].keys()
 
     for cluster_num in sorted(c1.biclusters.keys()):
         writeMe = []
@@ -1975,22 +1977,24 @@ def write_final_result(cfg, c1, mirna_ids_rev):
                 writeMe += ['NA']
 
         #   g. Associations with traits:  age, sex.bi, chemo_therapy, radiation_therapy
-        for association in PHENOTYPES:
-            if association in bicluster.attributes:
-                print 'ass1', bicluster.attributes[association]
-                ass1 = bicluster.attributes[association]
-                writeMe += [str(ass1['T']), str(ass1['pValue'])]
-            else:
-                writeMe += ['NA', 'NA']
-        surv1 = bicluster.attributes['Survival']
-        survAge1 = bicluster.attributes['Survival.AGE']
-        survAgeSex1 = bicluster.attributes['Survival.AGE_SEX']
-        writeMe += [str(surv1['z']), str(surv1['pValue']), str(survAge1['z']), str(survAge1['pValue']), str(survAgeSex1['z']), str(survAgeSex1['pValue'])]
+        if not cfg['phenotypes-file']=='NA':
+            for association in PHENOTYPES:
+                if association in bicluster.attributes:
+                    print 'ass1', bicluster.attributes[association]
+                    ass1 = bicluster.attributes[association]
+                    writeMe += [str(ass1['T']), str(ass1['pValue'])]
+                else:
+                    writeMe += ['NA', 'NA']
+            surv1 = bicluster.attributes['Survival']
+            survAge1 = bicluster.attributes['Survival.AGE']
+            survAgeSex1 = bicluster.attributes['Survival.AGE_SEX']
+            writeMe += [str(surv1['z']), str(surv1['pValue']), str(survAge1['z']), str(survAge1['pValue']), str(survAgeSex1['z']), str(survAgeSex1['pValue'])]
 
         #   h. Independent replication:
-        replications_mesoTCGA = bicluster.attributes['replication_mesoTCGA']
-        for replication in ['mesoTCGA_var.exp','mesoTCGA_avg.pc1.var.exp','mesoTCGA_pc1.perm.p','mesoTCGA_OS','mesoTCGA_OS.p','mesoTCGA_OS.age','mesoTCGA_OS.age.p', 'mesoTCGA_OS.age.sex','mesoTCGA_OS.age.sex.p']:
-            writeMe.append(str(replications_mesoTCGA[replication]))
+        for rep_set in cfg['replication-dataset-names']:
+            replications = bicluster.attributes['replication_'+rep_set]
+            for replication in [rep_set+'_var.exp',rep_set+'_avg.pc1.var.exp',rep_set+'_pc1.perm.p',rep_set+'_OS',rep_set+'_OS.p',rep_set+'_OS.age',rep_set+'_OS.age.p', rep_set+'_OS.age.sex',rep_set+'_OS.age.sex.p']:
+                writeMe.append(str(replications[replication]))
 
         #   i. Functional enrichment of biclusters using GO term Biological Processes
         bfe1 = bicluster.attributes['goTermBP']
@@ -2000,9 +2004,10 @@ def write_final_result(cfg, c1, mirna_ids_rev):
             writeMe.append(';'.join(bfe1))
 
         #   j. Hallmarks of Cancer:  Hanahan and Weinberg, 2011
-        bhc1 = bicluster.attributes['hallmarksOfCancer']
-        for hallmark in hallmarksOfCancer:
-            writeMe.append(str(bhc1[hallmark]))
+        if cfg['hallmarks']:
+            bhc1 = bicluster.attributes['hallmarksOfCancer']
+            for hallmark in hallmarksOfCancer:
+                writeMe.append(str(bhc1[hallmark]))
 
         #   k. Glioma sub-type enrichment: 'NON_TUMOR','ASTROCYTOMA','MIXED','OLIGODENDROGLIOMA','GBM'
         #for overlap in ['NON_TUMOR','ASTROCYTOMA','MIXED','OLIGODENDROGLIOMA','GBM']:
@@ -2030,11 +2035,13 @@ def write_final_result(cfg, c1, mirna_ids_rev):
         #    header += ['Correspondent.TFs', 'Correspondent.miRNAs']
         if cfg['run-neo']:
             header += ['Correspondent.TFs']
-        header += sum([[association, association+'.p'] for association in PHENOTYPES+['OS','OS.covAge','OS.covAgeSex']],[]) + \
-         ['mesoTCGA_var.exp','mesoTCGA_avg.pc1.var.exp','mesoTCGA_pc1.perm.p','mesoTCGA_OS','mesoTCGA_OS.p','mesoTCGA_OS.age','mesoTCGA_OS.age.p', 'mesoTCGA_OS.age.sex','mesoTCGA_OS.age.sex.p'] + \
-         ['GO_Term_BP'] + \
-         [i.strip() for i in hallmarksOfCancer] + \
-         ['Genes']
+        header += sum([[association, association+'.p'] for association in PHENOTYPES+['OS','OS.covAge','OS.covAgeSex']],[])
+        for rep_set in cfg['replication-dataset-names']:
+            header += [rep_set+'_var.exp',rep_set+'_avg.pc1.var.exp',rep_set+'_pc1.perm.p',rep_set+'_OS',rep_set+'_OS.p',rep_set+'_OS.age',rep_set+'_OS.age.p', rep_set+'_OS.age.sex',rep_set+'_OS.age.sex.p']
+        header += ['GO_Term_BP']
+        if cfg['hallmarks']:
+            header += [i.strip() for i in hallmarksOfCancer]
+        header += ['Genes']
         postFinal.write(','.join(header)+'\n'+'\n'.join([','.join(i) for i in postOut]))
 
     print 'Done.\n'
