@@ -46,6 +46,12 @@ import utils
 import config
 import json
 
+# This variable determines the directory we are in so
+# we can execute other scripts that are contained in this
+# directory. This avoids having to reference them with "./<script>
+# which would only work if we are directly in that directory
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+
 #################################################################
 ## rpy2 integration                                            ##
 #################################################################
@@ -771,8 +777,7 @@ def compute_tfbsdb_enrichment(cfg, c1):
     """D. Upstream TFBS DB enrichment Analysis"""
     if not c1.tfbs_db:
         res1 = __compute_enrichment(c1, 'TFBS_DB', cfg.outdir_path('tfbs_db.pkl'),
-                                    cfg['tfbsdb'],
-                                    'TF/tfbs_db.pkl')
+                                    cfg['tfbsdb'], cfg['tfbsdb-pkl'])
 
         print 'Storing results...'
         for r1 in res1:
@@ -789,7 +794,7 @@ def compute_3pUTR_pita_set_enrichment(cfg, c1, mirna_ids):
     if not c1.pita_3pUTR:
         res1 = __compute_enrichment(c1, 'PITA', cfg.outdir_path('pita_3pUTR.pkl'),
                                     cfg['pita'],
-                                    'miRNA/pita.pkl')
+                                    os.path.join(cfg['mirna-dir'], 'pita.pkl'))
 
         print 'Storing results...'
         for r1 in res1:
@@ -810,8 +815,7 @@ def compute_3pUTR_targetscan_set_enrichment(cfg, c1, mirna_ids):
     """F. 3' UTR TargetScan"""
     if not c1.targetscan_3pUTR:
         res1 = __compute_enrichment(c1, 'TargetScan', cfg.outdir_path('targetscan_3pUTR.pkl'),
-                                    cfg['targetscan'],
-                                    'miRNA/targetScan.pkl')
+                                    cfg['targetscan'], os.path.join(cfg['mirna-dir'], 'targetScan.pkl'))
 
         print 'Storing results...'
         for r1 in res1:
@@ -942,9 +946,10 @@ def dump_cluster_members(cfg, c1):
 def __get_cluster_eigengenes(cfg, c1):
     # Calculate bicluster eigengene (first principal components)
     print "Compute bicluster eigengenes"
+    app_path = os.path.join(THIS_DIR, 'getEigengene.R')
     cluster_eigengenes_path = cfg.outdir_path('biclusterEigengenes.csv')
     if not os.path.exists(cluster_eigengenes_path):
-        ret = subprocess.check_call(['./getEigengene.R',
+        ret = subprocess.check_call([app_path,
                                      '-r', cfg['all-ratios-file'],
                                      '-o', cfg['outdir'],
                                      '-c', str(cfg['cores'])],
@@ -1366,8 +1371,9 @@ def __run_mirvestigator_3putr(cfg, c1):
                             p3=bool(cfg['mirvestigator']['p3']),
                             wobble=bool(cfg['mirvestigator']['wobble']),
                             wobbleCut=cfg['mirvestigator']['wobbleCut'],
-                            baseDir='output',
-                            species=cfg['mirvestigator']['species'])
+                            baseDir=cfg['outdir'],
+                            species=cfg['mirvestigator']['species'],
+                            miRNA_dir=cfg['mirna-dir'])
         with open(pkl_path, 'wb') as outfile:
             cPickle.dump(m2m, outfile)
     else:
@@ -1504,7 +1510,8 @@ def __make_permuted_pvalues(cfg, c1):
     pvalues_path = cfg.outdir_path('residualPermutedPvalues_permAll.csv')
     if not os.path.exists(pvalues_path):
         print 'Calculating FPC permuted p-values...'
-        ret = subprocess.check_call(['./permutedResidualPvalues_permAll_mc.R',
+        app_path = os.path.join(THIS_DIR, 'permutedResidualPvalues_permAll_mc.R')
+        ret = subprocess.check_call([app_path,
                                      '-o', cfg['outdir'],
                                      '-r', cfg['ratios-file'],
                                      '-c', str(cfg['cores'])],
@@ -1536,8 +1543,8 @@ def __make_functional_enrichment(cfg, c1):
     # Note that these are external to the project and have hard-coded paths !!!
     if not os.path.exists(cfg.outdir_path('biclusterEnrichment_GOBP.csv')):
         print 'Run functional enrichment...'
-        ret = subprocess.check_call(['./enrichment.R',
-                                    '-o', cfg['outdir'],
+        app_path = os.path.join(THIS_DIR, 'enrichment.R')
+        ret = subprocess.check_call([app_path, '-o', cfg['outdir'],
                                     '-l', cfg['enrichment-library']],
                                     stderr=subprocess.STDOUT)
         if ret == 1:
@@ -1565,7 +1572,8 @@ def __make_go_term_semantic_similarity(cfg, c1):
     #################################################################
     if not os.path.exists(cfg.outdir_path('jiangConrath_hallmarks.csv')):
         print 'Run semantic similarity...'
-        ret = subprocess.check_call("./goSimHallmarksOfCancer.R -o %s" % cfg.outdir,
+        app_path = os.path.join(THIS_DIR, 'goSimHallmarksOfCancer.R')
+        ret = subprocess.check_call("%s -o %s" % (app_path, cfg.outdir),
                                     stderr=subprocess.STDOUT, shell=True)
         if ret == 1:
             raise Exception('could not run semantic similarity')
@@ -1638,16 +1646,17 @@ def run_neo(cfg):
     if not os.path.exists(cfg.outdir_path('causal')):
         ## Run the runNEO.R script and do the causality analyses
         print '  Network edge orienting (NEO)...'
-        print ['./NEO/runNEO_V2.R', '-o', cfg['outdir'], '-r', cfg['all-ratios-file'], '-s', cfg['som-muts-file'], '-t', 'meso', '-e', 'output/biclusterEigengenes.csv', '-c', str(cfg['cores'])]
-        ret = subprocess.check_call(['./NEO/runNEO_VnoMir.R',
-                                         '-o', cfg['outdir'],
-                                         '-r', cfg['all-ratios-file'],
-                                         #'-m', cfg['mirna-file'],
-                                         '-s', cfg['som-muts-file'],
-                                         '-t', 'meso',
-                                         '-e', 'output/biclusterEigengenes.csv',
-                                         '-c', str(cfg['cores'])],
-                                        stderr=subprocess.STDOUT)
+        app_path = os.path.join(THIS_DIR, 'NEO/runNEO_V2.R')
+        print [app_path, '-o', cfg['outdir'], '-r', cfg['all-ratios-file'], '-s', cfg['som-muts-file'], '-t', 'meso', '-e', 'output/biclusterEigengenes.csv', '-c', str(cfg['cores'])]
+        ret = subprocess.check_call([app_path,
+                                     '-o', cfg['outdir'],
+                                     '-r', cfg['all-ratios-file'],
+                                     '-m', cfg['mirna-file'],
+                                     '-s', cfg['som-muts-file'],
+                                     '-t', 'meso',
+                                     '-e', 'output/biclusterEigengenes.csv',
+                                     '-c', str(cfg['cores'])],
+                                    stderr=subprocess.STDOUT)
         if ret == 1:
             raise Exception('could not run causality analyses')
 

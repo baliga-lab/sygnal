@@ -28,10 +28,11 @@ class miRvestigator:
     miRNA seeds against motifs from 3' UTRs."""
     def __init__(self, pssms, seqs3pUTR, seedModel=[6, 7, 8], minor=True,
                  p5=True, p3=True, textOut=True, wobble=True, wobbleCut=0.25,
-                 baseDir='', outName='', species='hsa'):
+                 baseDir='', outName='', species='hsa', miRNA_dir='miRNA'):
         print '\nmiRvestigator analysis started...'
         self.pssms = pssms
         self.species = species
+        self.miRNA_dir = miRNA_dir  # must come before setMiRNAs
         self.miRNAs = self.setMiRNAs(0,8,minor,p5,p3)
 
         # Trim sequences down
@@ -324,7 +325,8 @@ class miRvestigator:
 
     # Get the miRNAs to compare against
     def setMiRNAs(self,seedStart,seedEnd, minor=True, p5=True, p3=True):
-        if not os.path.exists('miRNA/mature.fa.gz'):
+        mature_fa_gz_path = os.path.join(self.miRNA_dir, 'mature.fa.gz')
+        if not os.path.exists(mature_fa_gz_path):
             print '\nDownloading miRNA seeds from miRBase.org...'
             # Grab down the latest miRNA data from mirbase.org:
             #  ftp://mirbase.org/pub/mirbase/CURRENT/mature.fa.gz
@@ -334,8 +336,8 @@ class miRvestigator:
             ftp1.cwd('/pub/mirbase/CURRENT/')
             # Get the miRBase.org version number for reference.
             self.miRNAver = (ftp1.pwd().split('/'))[-1]
-            outFile = open('miRNA/mature.fa.gz','wb')
-            ftp1.retrbinary('RETR mature.fa.gz',outFile.write)
+            outFile = open(mature_fa_gz_path,'wb')
+            ftp1.retrbinary('RETR mature.fa.gz', outFile.write)
             outFile.close()
             ftp1.quit()
             print 'Done.\n'
@@ -345,7 +347,7 @@ class miRvestigator:
         # Read in miRNAs: miRNAs are labeled by the hsa-* names and grabbing 2-8bp
         ### Could merge these as they come in so that don't do redundant, and also so that the labels are together
         import gzip
-        miRNAFile = gzip.open('miRNA/mature.fa.gz','r')
+        miRNAFile = gzip.open(mature_fa_gz_path, 'r')
         miRNAs = {}
         while 1:
             miRNALine = miRNAFile.readline()

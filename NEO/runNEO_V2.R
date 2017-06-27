@@ -42,24 +42,25 @@ tfExp = as.matrix(ratios[tf_genes,])
 rownames(tfExp) = paste('X',tf_genes,sep='')
 
 # Load miRNA expression
-cat('\nLoading miRatios...')
-miRExp <- read.csv(file=opt$mirnas, as.is=T, header=T, row.names=1 )
-miRExp = miRExp[,which(sapply(colnames(miRExp), function(x) { sum(is.na(miRExp[,x])) })!=length(rownames(miRExp)))]
-miRExp = miRExp[which(rowSums(miRExp)!=0),]
+if (opt$mirnas != 'NA') {
+    cat('\nLoading miRatios...')
+    miRExp <- read.csv(file=opt$mirnas, as.is=T, header=T, row.names=1 )
+    miRExp = miRExp[,which(sapply(colnames(miRExp), function(x) { sum(is.na(miRExp[,x])) })!=length(rownames(miRExp)))]
+    miRExp = miRExp[which(rowSums(miRExp)!=0),]
 
-# Merge regulator expression
-cat('\nLoading regExp...')
-comSamp = intersect(colnames(tfExp),colnames(miRExp))
-regExp = rbind(tfExp[,comSamp], miRExp[,comSamp])
-#regExp = matrix(ncol=ncol(regExp), nrow=nrow(regExp), data=as.numeric(regExp), dimnames=dimnames(regExp))
+    # Merge regulator expression
+    cat('\nLoading regExp...')
+    comSamp = intersect(colnames(tfExp),colnames(miRExp))
+    regExp = rbind(tfExp[,comSamp], miRExp[,comSamp])
+} else {
+    regExp = tfExp
+}
 
 # Load somatic mutations
 cat('\nLoading somatic mutations...')
 mutations1 <- read.csv(file=opt$som_muts, as.is=T, header=T, row.names=1)
-#patSeq = ncol(mutations1)
 maf1 = rowSums(mutations1)
 mutations2 = mutations1[names(maf1)[which(maf1>=3)],]
-#mutations2 = matrix(ncol=ncol(mutations2),nrow=nrow(mutations2),data=as.numeric(mutations2),dimnames=dimnames(mutations2))
 
 # Load bicluster eigengenes
 cat('\nLoading bicluster eigengene...')
