@@ -81,16 +81,29 @@ t.test_err <- function(...) {
 cat('\nCalculating associations...')
 suppressMessages(library(doParallel))
 registerDoParallel(cores=opt$cores)
-if(!file.exists(paste('output/mut_reg_t_test_p_values_',opt$tumor,'.csv',sep=''))) {
-    m1 = foreach(mut1=rownames(mutations2), .combine=rbind) %dopar% sapply(rownames(regExp), function(reg1) { t.test_err(as.numeric(d3[reg1,]) ~ as.numeric(d3[mut1,])) } )
+
+test.pvalues.path <- paste('mut_reg_t_test_p_values_',opt$tumor,'.csv', sep='')
+test.pvalues.path <- paste(opt$outdir, test.pvalues.path, sep='/')
+fold.changes.path <- paste('mut_reg_fold_changes_',opt$tumor,'.csv', sep='')
+fold.changes.path <- paste(opt$outdir, fold.changes.path, sep='/')
+
+if (!file.exists(test.pvalues.path)) {
+
+    m1 = foreach(mut1=rownames(mutations2), .combine=rbind) %dopar% sapply(rownames(regExp),
+                                                                           function(reg1) {
+                                                                               t.test_err(as.numeric(d3[reg1,]) ~ as.numeric(d3[mut1,]))
+                                                                           })
     rownames(m1) = rownames(mutations2)
-    fc1 = foreach(mut1=rownames(mutations2), .combine=rbind) %dopar% sapply(rownames(regExp), function(reg1) { median(2^as.numeric(d3[reg1,which(d3[mut1,]==0)]),na.rm=T)/median(2^as.numeric(d3[reg1,which(d3[mut1,]==1)]),na.rm=T) } )
+    fc1 = foreach(mut1=rownames(mutations2), .combine=rbind) %dopar% sapply(rownames(regExp),
+                                                                            function(reg1) {
+                                                                                median(2^as.numeric(d3[reg1,which(d3[mut1,]==0)]),na.rm=T)/median(2^as.numeric(d3[reg1,which(d3[mut1,]==1)]),na.rm=T)
+                                                                            })
     rownames(fc1) = rownames(mutations2)
-    write.csv(m1,paste('output/mut_reg_t_test_p_values_',opt$tumor,'.csv',sep=''))
-    write.csv(fc1,paste('output/mut_reg_fold_changes_',opt$tumor,'.csv',sep=''))
+    write.csv(m1, test.pvalues.path)
+    write.csv(fc1, fold.changes.path)
 } else {
-    m1 = read.csv(paste('output/mut_reg_t_test_p_values_',opt$tumor,'.csv',sep=''),header=T,row.names=1)
-    fc1 = read.csv(paste('output/mut_reg_fold_changes_',opt$tumor,'.csv',sep=''),header=T,row.names=1)
+    m1 = read.csv(test.pvalues.path, header=T, row.names=1)
+    fc1 = read.csv(fold.changes.path, header=T, row.names=1)
 }
 
 ## Select which mutations are associated with which regualtors
@@ -107,14 +120,18 @@ sigRegFC = sapply(rownames(m1), function(x) { colnames(m1)[intersect(which(m1[x,
 cat('\nRunning NEO...')
 source('NEO/neoDecember2015.R')
 registerDoParallel(cores=opt$cores)
-dir.create(paste('output/causality_',opt$tumor,sep=''), showWarnings=F)
+
+causality.dir <- paste('causality_', opt$tumor, sep='')
+causality.dir <- paste(opt$outdir, causality.dir, sep='/')
+dir.create(causality.dir, showWarnings=F)
+
 foreach(mut1=names(sigRegFC)) %dopar% {
     # Make a place to store out the data from the analysis
     mut2 = mut1
     if(nchar(mut2)>75) {
         mut2 = substr(mut2,1,75)
     }
-    dir.create(paste('output/causality_',opt$tumor,'/causal_', mut2, sep=''))
+    dir.create(paste(causality.dir, '/causal_', mut2, sep=''))
 
     # Change the names to be compatible with NEO
     print(paste('Starting ',mut1,'...',sep=''))
@@ -125,7 +142,7 @@ foreach(mut1=names(sigRegFC)) %dopar% {
         print(paste('  Starting ',mut1,' vs. ', reg1,' testing ', length(rownames(be1)), ' biclusters...', sep=''))
         sm1 = try(single.marker.analysis(t(dMut1),1,2,3:length(rownames(dMut1))),silent=TRUE)
         if (!(class(sm1)=='try-error')) {
-            write.csv(sm1[order(sm1[,6],decreasing=T),],paste('output/causality_',opt$tumor,'/causal_', mut2, '/sm.nonsilent_somatic.',mut2,'_',reg1,'.csv',sep=''))
+            write.csv(sm1[order(sm1[,6],decreasing=T),], paste(causality.dir,'/causal_', mut2, '/sm.nonsilent_somatic.',mut2,'_',reg1,'.csv',sep=''))
             print(paste('Finished ',reg1,'.',sep=''))
         } else {
             print(paste('  Error ',mut1,'.',sep=''))

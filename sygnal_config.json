@@ -28,6 +28,7 @@
     "targetscan": "../../../commonFiles/targetScan_miRNA_sets_entrez_mmu.json",
     "tfbsdb": "../../../commonFiles/tfbsDb_plus_and_minus_5000_entrez_mmu.json",
     "tfbsdb-pkl": "../../../commonFiles/TF/tfbs_db.pkl",
+    "custom-script-dir": "custom-scripts",
 
     "meme":  { "upstream": {
                     "nmotifs": 2,

@@ -1439,15 +1439,18 @@ def __convert_mirvestigator_3putr_results(cfg, c1, mirna_ids):
     print 'Done.\n'
 
 
-def run_replication(rep_script):
+def run_replication(params):
     ## TODO:
     ## these R scripts are external to the project and therefore
     ## we can not generalize them safely. The script has a "loc1" variable which
     ## hardcodes the output path, we need to make both
     ## What actually needs to be done is to move the script into this project and
     ## make it configurable
+    cfg, rep_script = params  # from Pool.map()
     print '  Replication running for %s...' % rep_script
-    ret = subprocess.check_call('Rscript replication_'+rep_script+'/replicationDatasetPermutation.R -d '+rep_script+' -o output',
+    script_path = os.path.join(cfg['custom-script-dir'], 'replication_' + rep_script,
+                               'replicationDatasetPermutation.R')
+    ret = subprocess.check_call('Rscript ' + script_path + ' -d ' + rep_script + ' -o ' + cfg['outdir'],
                                 stderr=subprocess.STDOUT, shell=True)
     if ret == 1:
         raise Exception('could not run replication - check dependencies')
@@ -1469,14 +1472,14 @@ def __make_replication_pvalues(cfg, c1):
         cmcFile.write('\n'.join(writeMe))
 
     # Run replication on all datasets
-    run_sets = [name for name in cfg["replication-dataset-names"]
+    run_sets = [(cfg, name) for name in cfg["replication-dataset-names"]
                 if not os.path.exists(cfg.outdir_path('replicationPvalues_%s.csv' % name))]
 
     if len(run_sets) > 0:
         print 'Run replication..'
         # Run this using all cores available
         cpus = int(cfg['cores'])
-        print 'There are', cpus,'CPUs avialable.'
+        print 'There are', cpus,'CPUs available.'
         pool = Pool(processes=cpus)
         pool.map(run_replication, run_sets)
         pool.close()
@@ -1544,9 +1547,8 @@ def __make_functional_enrichment(cfg, c1):
     if not os.path.exists(cfg.outdir_path('biclusterEnrichment_GOBP.csv')):
         print 'Run functional enrichment...'
         app_path = os.path.join(THIS_DIR, 'enrichment.R')
-        ret = subprocess.check_call([app_path, '-o', cfg['outdir'],
-                                    '-l', cfg['enrichment-library']],
-                                    stderr=subprocess.STDOUT)
+        app_args = [app_path, '-o', cfg['outdir'], '-l', cfg['enrichment-library']]
+        ret = subprocess.check_call(app_args, stderr=subprocess.STDOUT)
         if ret == 1:
             raise Exception('could not run functional enrichment')
 
@@ -1625,8 +1627,12 @@ def perform_postprocessing(cfg, c1, entrez2id, mirna_ids):
         __read_replication_pvalues(cfg, c1)
         __make_permuted_pvalues(cfg, c1)
         __make_functional_enrichment(cfg, c1)
-        if cfg['hallmarks']:
-            __make_go_term_semantic_similarity(cfg, c1)
+        try:
+            if 'hallmarks' in cfg:
+                __make_go_term_semantic_similarity(cfg, c1)
+        except KeyError:
+            # hallmarks is not found
+            pass
 
         print 'Dumping Final cMonkey Object:'
         with open(pkl_path, 'wb') as outfile:
@@ -1647,14 +1653,15 @@ def run_neo(cfg):
         ## Run the runNEO.R script and do the causality analyses
         print '  Network edge orienting (NEO)...'
         app_path = os.path.join(THIS_DIR, 'NEO/runNEO_V2.R')
-        print [app_path, '-o', cfg['outdir'], '-r', cfg['all-ratios-file'], '-s', cfg['som-muts-file'], '-t', 'meso', '-e', 'output/biclusterEigengenes.csv', '-c', str(cfg['cores'])]
+        csv_file = os.path.join(cfg['outdir'], 'biclusterEigengenes.csv')
+        print [app_path, '-o', cfg['outdir'], '-r', cfg['all-ratios-file'], '-s', cfg['som-muts-file'], '-t', 'meso', '-e', csv_file, '-c', str(cfg['cores'])]
         ret = subprocess.check_call([app_path,
                                      '-o', cfg['outdir'],
                                      '-r', cfg['all-ratios-file'],
                                      '-m', cfg['mirna-file'],
                                      '-s', cfg['som-muts-file'],
                                      '-t', 'meso',
-                                     '-e', 'output/biclusterEigengenes.csv',
+                                     '-e', csv_file,
                                      '-c', str(cfg['cores'])],
                                     stderr=subprocess.STDOUT)
         if ret == 1:
