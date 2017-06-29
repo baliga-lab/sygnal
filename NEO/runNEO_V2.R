@@ -20,6 +20,11 @@ spec = matrix(c(
 
 opt <- getopt(spec)
 
+initial.options <- commandArgs(trailingOnly = FALSE)
+file.arg.name <- "--file="
+script.name <- sub(file.arg.name, "", initial.options[grep(file.arg.name, initial.options)])
+this.dir <- dirname(script.name)
+
 if (is.null(opt$outdir) || is.null(opt$tumor) || is.null(opt$ratios) || is.null(opt$mirnas) || is.null(opt$som_muts) || is.null(opt$eigengene) || is.null(opt$cores) || !is.null(opt$help)) {
   cat(getopt(spec, usage=TRUE))
   q(status=1)
@@ -36,7 +41,9 @@ cat('\nLoading ratios...')
 ratios <- read.csv(file=opt$ratios, as.is=T, header=T, row.names=1 )
 ratios = ratios[,which(sapply(colnames(ratios), function(x) { sum(is.na(ratios[,x])) })!=length(rownames(ratios)))]
 ratios = ratios[which(rowSums(ratios)!=0),]
-tf1 = read.csv('NEO/humanTFsFINAL_ENTREZ_GO_0003700.csv')[,1]
+
+tf.csv.path <- paste(this.dir, 'humanTFsFINAL_ENTREZ_GO_0003700.csv', sep='/')
+tf1 = read.csv(tf.csv.path)[,1]
 tf_genes = rownames(ratios)[which(rownames(ratios) %in% tf1)]
 tfExp = as.matrix(ratios[tf_genes,])
 rownames(tfExp) = paste('X',tf_genes,sep='')
@@ -118,7 +125,8 @@ sigRegFC = sapply(rownames(m1), function(x) { colnames(m1)[intersect(which(m1[x,
 ## Use for filtering:
 #  1. Signficant differntial expression of regulator between wt and mutant (FC <= 0.8 or FC >= 1.25, and T-test p-value <= 0.05)
 cat('\nRunning NEO...')
-source('NEO/neoDecember2015.R')
+neo.path <- paste(this.dir, 'neoDecember2015.R', sep='/')
+source(neo.path)
 registerDoParallel(cores=opt$cores)
 
 causality.dir <- paste('causality_', opt$tumor, sep='')

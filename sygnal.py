@@ -1654,16 +1654,11 @@ def run_neo(cfg):
         print '  Network edge orienting (NEO)...'
         app_path = os.path.join(THIS_DIR, 'NEO/runNEO_V2.R')
         csv_file = os.path.join(cfg['outdir'], 'biclusterEigengenes.csv')
-        print [app_path, '-o', cfg['outdir'], '-r', cfg['all-ratios-file'], '-s', cfg['som-muts-file'], '-t', 'meso', '-e', csv_file, '-c', str(cfg['cores'])]
-        ret = subprocess.check_call([app_path,
-                                     '-o', cfg['outdir'],
-                                     '-r', cfg['all-ratios-file'],
-                                     '-m', cfg['mirna-file'],
-                                     '-s', cfg['som-muts-file'],
-                                     '-t', 'meso',
-                                     '-e', csv_file,
-                                     '-c', str(cfg['cores'])],
-                                    stderr=subprocess.STDOUT)
+        app_call = [app_path, '-o', cfg['outdir'], '-r', cfg['all-ratios-file'],
+                    '-m', cfg['mirna-file'], '-s', cfg['som-muts-file'], '-t', 'meso',
+                    '-e', csv_file, '-c', str(cfg['cores'])]
+        print app_call
+        ret = subprocess.check_call(app_call, stderr=subprocess.STDOUT)
         if ret == 1:
             raise Exception('could not run causality analyses')
 
