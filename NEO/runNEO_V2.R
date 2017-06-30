@@ -133,6 +133,13 @@ causality.dir <- paste('causality_', opt$tumor, sep='')
 causality.dir <- paste(opt$outdir, causality.dir, sep='/')
 dir.create(causality.dir, showWarnings=F)
 
+# prefix the mut1 name with an X if the first character is numeric
+# because R will have replaced the names in be1 in that way
+mut.names <- names(sigRegFC)
+mut.names <- sapply(mut.names, function(s) { if (!is.na(as.numeric(substring(s,1,1)))) paste('X', s, sep='') else s })
+names(sigRegFC) <- mut.names
+
+
 foreach(mut1=names(sigRegFC)) %dopar% {
     # Make a place to store out the data from the analysis
     mut2 = mut1
@@ -150,7 +157,9 @@ foreach(mut1=names(sigRegFC)) %dopar% {
         print(paste('  Starting ',mut1,' vs. ', reg1,' testing ', length(rownames(be1)), ' biclusters...', sep=''))
         sm1 = try(single.marker.analysis(t(dMut1),1,2,3:length(rownames(dMut1))),silent=TRUE)
         if (!(class(sm1)=='try-error')) {
-            write.csv(sm1[order(sm1[,6],decreasing=T),], paste(causality.dir,'/causal_', mut2, '/sm.nonsilent_somatic.',mut2,'_',reg1,'.csv',sep=''))
+            result.path <- paste(causality.dir,'/causal_', mut2, '/sm.nonsilent_somatic.',mut2,'_',reg1,'.csv',sep='')
+            print(paste("Writing results to ", result.path, '...', sep=''))
+            write.csv(sm1[order(sm1[,6],decreasing=T),], result.path)
             print(paste('Finished ',reg1,'.',sep=''))
         } else {
             print(paste('  Error ',mut1,'.',sep=''))
