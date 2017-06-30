@@ -46,7 +46,6 @@ tf.csv.path <- paste(this.dir, 'humanTFsFINAL_ENTREZ_GO_0003700.csv', sep='/')
 tf1 = read.csv(tf.csv.path)[,1]
 tf_genes = rownames(ratios)[which(rownames(ratios) %in% tf1)]
 tfExp = as.matrix(ratios[tf_genes,])
-rownames(tfExp) = paste('X',tf_genes,sep='')
 
 # Load miRNA expression
 if (opt$mirnas != 'NA') {
@@ -63,9 +62,15 @@ if (opt$mirnas != 'NA') {
     regExp = tfExp
 }
 
+# prefix all regulator expressions with reg_
+rownames(regExp) <- paste('reg_', rownames(regExp), sep='')
+
 # Load somatic mutations
 cat('\nLoading somatic mutations...')
 mutations1 <- read.csv(file=opt$som_muts, as.is=T, header=T, row.names=1)
+# prefix all mutations with mut_
+rownames(mutations1) <- paste('mut_', rownames(mutations1), sep='')
+
 maf1 = rowSums(mutations1)
 mutations2 = mutations1[names(maf1)[which(maf1>=3)],]
 
@@ -152,7 +157,9 @@ foreach(mut1=names(sigRegFC)) %dopar% {
     print(paste('Starting ',mut1,'...',sep=''))
     for(reg1 in sigRegFC[[mut1]]) {
         # Make the data matrix will all genes strsplit(mut1)[[1]][1]
-        d3 = t(na.omit(t(d2[c(mut1,reg1,rownames(be1)),])))
+        indexes <- c(mut1,reg1,rownames(be1))
+        d3 = t(na.omit(t(d2[indexes,])))
+
         dMut1 = matrix(data=as.numeric(d3),nrow=dim(d3)[1],ncol=dim(d3)[2],byrow=F,dimnames=dimnames(d3))
         print(paste('  Starting ',mut1,' vs. ', reg1,' testing ', length(rownames(be1)), ' biclusters...', sep=''))
         sm1 = try(single.marker.analysis(t(dMut1),1,2,3:length(rownames(dMut1))),silent=TRUE)
