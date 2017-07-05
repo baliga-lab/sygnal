@@ -1649,13 +1649,15 @@ def perform_postprocessing(cfg, c1, entrez2id, mirna_ids):
 
 def run_neo(cfg):
     """Run NEO and integrate some form of results """
-    if not os.path.exists(cfg.outdir_path('causal')):
+    project_name = 'meso'  # danger ! hard-coded !!!
+    neo_output_dir = cfg.outdir_path('causality_%s' % project_name)
+    if not os.path.exists(neo_output_dir):
         ## Run the runNEO.R script and do the causality analyses
         print '  Network edge orienting (NEO)...'
         app_path = os.path.join(THIS_DIR, 'NEO/runNEO_V2.R')
         csv_file = os.path.join(cfg['outdir'], 'biclusterEigengenes.csv')
         app_call = [app_path, '-o', cfg['outdir'], '-r', cfg['all-ratios-file'],
-                    '-m', cfg['mirna-file'], '-s', cfg['som-muts-file'], '-t', 'meso',
+                    '-m', cfg['mirna-file'], '-s', cfg['som-muts-file'], '-t', project_name,
                     '-e', csv_file, '-c', str(cfg['cores'])]
         print app_call
         ret = subprocess.check_call(app_call, stderr=subprocess.STDOUT)
@@ -1663,23 +1665,41 @@ def run_neo(cfg):
             raise Exception('could not run causality analyses')
 
 
+def collect_causal_summary(path, causal_summary):
+    if os.path.isdir(path):
+        # this is a sub directory => recursively continue the process
+        for filename in os.listdir(path):
+            collect_causal_summary(os.path.join(path, filename), causal_summary)
+    else:
+        filename = os.path.split(path)[-1]
+        if filename.endswith('.csv'):
+            with open(path, 'r') as infile:
+                line = infile.readline()  # skip header
+                for line in infile:
+                    row = line.strip().split(',')
+                    if (float(row[6]) > cfg['leo-nb-atob'] and
+                        float(row[12]) <= cfg['mlogp-m-atob']):
+                        causal_summary.append({'Mutation': row[1].strip('"').lstrip('M:'),
+                                               'Regulator': row[3].strip('"').lstrip('A:X'),
+                                               'Bicluster': row[5].strip('"').lstrip('B:bic_'),
+                                               'leo.nb.AtoB': row[6],
+                                               'mlogp.M.AtoB': row[12],
+                                               'PathAB': row[17],
+                                               'SEPathAB': row[18],
+                                               'ZPathAB': row[19],
+                                               'PPathAB': row[20],
+                                               'BLV.AtoB': row[25],
+                                               'RMSEA.AtoB': row[28]
+                        })
+
 def write_neo_summary(cfg):
     ## Pull together analysis into cohesive output
+    project_name = 'meso'  # danger ! hard-coded !!!
     causalSummary = []
     # For each mutation
-    for file1 in os.listdir(cfg.outdir_path('causal')):
-        if file1[0:7]=='causal_':
-            with open(cfg.outdir_path('causal/%s' % (file1)), 'r') as inFile:
-                inLine = inFile.readline() # Get rid of header
-                while 1:
-                    inLine = inFile.readline()
-                    if not inLine:
-                        break
-                    splitUp = inLine.strip().split(',')
-                    if (float(splitUp[6]) > cfg['leo-nb-atob'] and
-                        float(splitUp[12]) <= cfg['mlogp-m-atob']):
-                        # Somatic Mutation(1), Regulator(3), Biclster(5), leo.nb.AtoB(6), mlogp.M.AtoB(12), PathAB(17), SEPathAB(18), ZPathAB(19), PPathAB(20), BLV.AtoB(25), RMSEA.AtoB(28)
-                        causalSummary.append({'Mutation': splitUp[1].strip('"').lstrip('M:'), 'Regulator': splitUp[3].strip('"').lstrip('A:X'), 'Bicluster': splitUp[5].strip('"').lstrip('B:bic_'), 'leo.nb.AtoB': splitUp[6], 'mlogp.M.AtoB': splitUp[12], 'PathAB': splitUp[17], 'SEPathAB': splitUp[18], 'ZPathAB': splitUp[19], 'PPathAB': splitUp[20], 'BLV.AtoB': splitUp[25], 'RMSEA.AtoB': splitUp[28]})
+    dirpath = cfg.outdir_path('causality_%s' % project_name)
+    for filename in os.listdir(dirpath):
+        collect_causal_summary(os.path.join(dirpath, filename), causalSummary)
 
     ## Output:  Somatic Mutation(1), Regulator(3), Biclster(5), leo.nb.AtoB(6), mlogp.M.AtoB(12), PathAB(17), SEPathAB(18), ZPathAB(19), PPathAB(20), BLV.AtoB(25), RMSEA.AtoB(28)
     header = ['Mutation', 'Regulator', 'Bicluster', 'leo.nb.AtoB', 'mlogp.M.AtoB', 'PathAB', 'SEPathAB', 'ZPathAB', 'PPathAB', 'BLV.AtoB', 'RMSEA.AtoB']
@@ -1751,8 +1771,11 @@ def write_final_result(cfg, c1, mirna_ids_rev):
     #################################################################
     print 'Write postProcessedVFinal.csv...'
     postOut = []
-    if cfg['hallmarks']:
-        hallmarksOfCancer = c1.biclusters[1].attributes['hallmarksOfCancer'].keys()
+    try:
+        if cfg['hallmarks']:
+            hallmarksOfCancer = c1.biclusters[1].attributes['hallmarksOfCancer'].keys()
+    except:
+        pass
 
     for cluster_num in sorted(c1.biclusters.keys()):
         writeMe = []
@@ -2003,7 +2026,7 @@ def write_final_result(cfg, c1, mirna_ids_rev):
 
         #   h. Independent replication:
         for rep_set in cfg['replication-dataset-names']:
-            replications = bicluster.attributes['replication_'+rep_set]
+            replications = bicluster.attributes['replication_' + rep_set]
             for replication in [rep_set+'_var.exp',rep_set+'_avg.pc1.var.exp',rep_set+'_pc1.perm.p',rep_set+'_OS',rep_set+'_OS.p',rep_set+'_OS.age',rep_set+'_OS.age.p', rep_set+'_OS.age.sex',rep_set+'_OS.age.sex.p']:
                 writeMe.append(str(replications[replication]))
 
