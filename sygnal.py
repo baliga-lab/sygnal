@@ -1493,7 +1493,7 @@ def __read_replication_pvalues(cfg, c1):
     code to handle all data set types."""
     # Run replication on all datasets
     run_sets = [name for name in cfg["replication-dataset-names"]
-                if not os.path.exists(cfg.outdir_path('replicationPvalues_%s.csv' % name))]
+                if os.path.exists(cfg.outdir_path('replicationPvalues_%s.csv' % name))]
     for run_set in run_sets:
         # Read in replication p-values - mesoTCGA Dataset
         print 'Loading replication p-values...'
@@ -2038,10 +2038,14 @@ def write_final_result(cfg, c1, mirna_ids_rev):
             writeMe.append(';'.join(bfe1))
 
         #   j. Hallmarks of Cancer:  Hanahan and Weinberg, 2011
-        if cfg['hallmarks']:
-            bhc1 = bicluster.attributes['hallmarksOfCancer']
-            for hallmark in hallmarksOfCancer:
-                writeMe.append(str(bhc1[hallmark]))
+        try:
+            if cfg['hallmarks']:
+                bhc1 = bicluster.attributes['hallmarksOfCancer']
+                for hallmark in hallmarksOfCancer:
+                    writeMe.append(str(bhc1[hallmark]))
+        except:
+            # skip if there is no hallmarks in the configuration
+            pass
 
         #   k. Glioma sub-type enrichment: 'NON_TUMOR','ASTROCYTOMA','MIXED','OLIGODENDROGLIOMA','GBM'
         #for overlap in ['NON_TUMOR','ASTROCYTOMA','MIXED','OLIGODENDROGLIOMA','GBM']:
@@ -2073,8 +2077,12 @@ def write_final_result(cfg, c1, mirna_ids_rev):
         for rep_set in cfg['replication-dataset-names']:
             header += [rep_set+'_var.exp',rep_set+'_avg.pc1.var.exp',rep_set+'_pc1.perm.p',rep_set+'_OS',rep_set+'_OS.p',rep_set+'_OS.age',rep_set+'_OS.age.p', rep_set+'_OS.age.sex',rep_set+'_OS.age.sex.p']
         header += ['GO_Term_BP']
-        if cfg['hallmarks']:
-            header += [i.strip() for i in hallmarksOfCancer]
+        try:
+            if cfg['hallmarks']:
+                header += [i.strip() for i in hallmarksOfCancer]
+        except:
+            # no hallmarks defined
+            pass
         header += ['Genes']
         postFinal.write(','.join(header)+'\n'+'\n'.join([','.join(i) for i in postOut]))
 
