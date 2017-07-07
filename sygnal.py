@@ -19,7 +19,11 @@
 #################################################################
 
 import math
-import cPickle, os, re, sys
+try:
+    import cPickle as pickle
+except:
+    import pickle
+import os, re, sys
 from sys import stdout, exit
 from multiprocessing import Pool, cpu_count, Manager
 from subprocess import *
@@ -97,7 +101,7 @@ def meme(num, seqfile, bgfile, nmotifs, min_motif_width, max_motif_width, revcom
     if not seed is None:
         args += ' -cons ' + str(seed)
 
-    print "MEME args: '%s'" % args
+    print("MEME args: '%s'" % args)
     meme_proc = Popen("meme %s" % args, shell=True, stdout=PIPE)
     output = meme_proc.communicate()[0].split('\n')
 
@@ -138,7 +142,7 @@ def weeder(bicluster, seqfile, bgfile, size, enriched, revcomp):
     First weederTFBS -W 6 -e 1, then weederTFBS -W 8 -e 2, and finally adviser
     """
     global g_weeder_results
-    print "run weeder on '%s'" % seqfile
+    print("run weeder on '%s'" % seqfile)
 
     # First run weederTFBS
     weeder_args = "%s %s %s %s" % (seqfile, bgfile, size, enriched)
@@ -282,7 +286,7 @@ def run_weeder(run_arg):
 
 def tomtom(num, dist_meth='ed', q_thresh=1, min_overlap=6):
     args = '-dist %s -o tmp/tomtom_out -text -thresh %d -min-overlap %d -verbosity 1 tmp/query%d.tomtom tmp/target%d.tomtom' % (dist_meth, q_thresh, min_overlap, num, num)
-    print args
+    print(args)
 
     with open(cfg['tmpdir']+'/stderr_%d.out' % num,'w') as errout:
         tomtom_proc = Popen("tomtom %s" % args, shell=True, stdout=PIPE, stderr=errout)
@@ -368,7 +372,7 @@ def anova_oneway(a1, a2, a3, a4):
     if not np.isnan(res[0]):
         return res[0], res[1]
     else:
-	return 'NA', 'NA'
+        return 'NA', 'NA'
 
 
 def mean_fold_change(a1, a2):
@@ -483,7 +487,7 @@ def miRNA_mappings(cfg):
             if not splitUp[0].lower() in mirna_ids:
                 mirna_ids[splitUp[0].lower()] = splitUp[1]
             else:
-                print 'Uh oh!', splitUp
+                print('Uh oh!', splitUp)
     return mirna_ids, mirna_ids_rev
 
 
@@ -503,14 +507,14 @@ def read_cmonkey_run(cfg, gene_conv):
                             geneConv=False)
 
         with open(output_path, 'wb') as pklFile:
-            cPickle.dump(c1, pklFile)
+            pickle.dump(c1, pklFile)
 
     # Otherwise load the dumped pickle file if it exists
     else:
-        print 'Loading precached cMonkey object...'
+        print('Loading precached cMonkey object...')
         with open(output_path, 'rb') as pklFile:
-            c1 = cPickle.load(pklFile)
-        print 'Done.\n'
+            c1 = pickle.load(pklFile)
+        print('Done.\n')
 
     return c1
 
@@ -523,7 +527,7 @@ def compute_upstream_motifs_meme(cfg, c1):
     global g_meme_args, g_cluster_meme_runs
 
     if not c1.meme_upstream:
-        print 'Running MEME on Upstreams:'
+        print('Running MEME on Upstreams:')
         pkl_path = cfg.outdir_path('meme_upstream.pkl')
         # Use already run MEME results if they exist
         if not os.path.exists(pkl_path):
@@ -536,7 +540,7 @@ def compute_upstream_motifs_meme(cfg, c1):
             run_args = []
 
             # First make fasta files for all biclusters
-            print 'Making Files for MEME Upstream run...'
+            print('Making Files for MEME Upstream run...')
             for cluster_num in c1.biclusters:
                 seqs = c1.bicluster_seqs_upstream(cluster_num)
                 if len(seqs) > 0:
@@ -556,8 +560,8 @@ def compute_upstream_motifs_meme(cfg, c1):
                                     'revcomp': bool(cfg['meme']['upstream']['revcomp'])})
 
 
-            print 'Running MEME on Upstream sequences...'
-            print 'There are ',cfg['cores'],' CPUs available.'
+            print('Running MEME on Upstream sequences...')
+            print('There are ',cfg['cores'],' CPUs available.')
             pool = Pool(processes=int(cfg['cores']))
             pool.map(run_meme, run_args)
             pool.close()
@@ -565,21 +569,21 @@ def compute_upstream_motifs_meme(cfg, c1):
 
             # Dump weeder results as a pickle file
             with open(pkl_path, 'wb') as outfile:
-                cPickle.dump(deepcopy(g_cluster_meme_runs), outfile)
+                pickle.dump(deepcopy(g_cluster_meme_runs), outfile)
         else:
-            print 'Loading from precached object...'
+            print('Loading from precached object...')
             with open(pkl_path, 'rb') as outfile:
-                g_cluster_meme_runs = cPickle.load(outfile)
+                g_cluster_meme_runs = pickle.load(outfile)
 
         # Add PSSMs to cMonkey object
-        print 'Storing output...'
+        print('Storing output...')
         for cluster_num, pssms in g_cluster_meme_runs.items():
             for pssm1 in pssms:
                 bicluster = c1.biclusters[cluster_num]
                 pssm1.de_novo_method = 'meme'
                 bicluster.add_pssm_upstream(pssm1)
 
-        print 'Done with MEMEing.\n'
+        print('Done with MEMEing.\n')
 
         # MEME upstream has been run on cMonkey run
         c1.meme_upstream = True
@@ -614,8 +618,8 @@ def __compute_motifs_weeder(cfg, pkl_path, biclusters, add_result, bicluster_seq
         # Set to run Weeder on 'medium' setting which means 6bp, 8bp and 10bp motifs
         g_weeder_args = mgr.dict(args_dict)
 
-        print 'Running Weeder...'
-        print 'There are ', cfg['cores'],' CPUs available.'
+        print('Running Weeder...')
+        print('There are ', cfg['cores'],' CPUs available.')
         pool = Pool(processes=int(cfg['cores']))
         pool.map(run_weeder, run_args)
         pool.close()
@@ -623,24 +627,24 @@ def __compute_motifs_weeder(cfg, pkl_path, biclusters, add_result, bicluster_seq
 
         # Dump weeder results as a pickle file
         with open(pkl_path,'wb') as outfile:
-            cPickle.dump(deepcopy(g_weeder_results), outfile)
+            pickle.dump(deepcopy(g_weeder_results), outfile)
 
     else:
-        print 'Loading from precached object...'
+        print('Loading from precached object...')
         with open(pkl_path,'rb') as infile:
-            g_weeder_results = cPickle.load(infile)
+            g_weeder_results = pickle.load(infile)
 
-    print 'Storing output...'
+    print('Storing output...')
     for i, pssms in g_weeder_results.items():
         for p in pssms:
             p.de_novo_method = 'weeder'
             add_result(i, p)
 
-    print 'Done with WEEDERing.\n'
+    print('Done with WEEDERing.\n')
 
 
 def compute_upstream_motifs_weeder(cfg, c1):
-    print '\nRunning WEEDER on Upstreams:'
+    print('\nRunning WEEDER on Upstreams:')
     if not c1.weeder_upstream:
         __compute_motifs_weeder(cfg, cfg.outdir_path('weeder_upstream.pkl'),
                                 c1.biclusters,
@@ -654,7 +658,7 @@ def compute_upstream_motifs_weeder(cfg, c1):
 
 
 def compute_3pUTR_weeder(cfg, c1):
-    print '\nRunning WEEDR on 3\' UTRs:'
+    print('\nRunning WEEDR on 3\' UTRs:')
     if not c1.weeder_3pUTR:
         __compute_motifs_weeder(cfg, cfg.outdir_path('weeder_3pUTR.pkl'),
                                 c1.biclusters,
@@ -705,7 +709,7 @@ def cluster_hypergeo(bicluster_id):
                 min_mirna.append(i)
                 perc_targets.append(float(q[i]) / float(k[i]))
 
-    print 'Bicluster #%d' % bicluster_id, ' '.join([m1s[miRNA] for miRNA in min_mirna])
+    print('Bicluster #%d' % bicluster_id, ' '.join([m1s[miRNA] for miRNA in min_mirna]))
     return [bicluster_id, ' '.join([m1s[i] for i in min_mirna]),
             ' '.join(map(str, perc_targets)), min_pvalue]
 
@@ -720,7 +724,7 @@ def __bicluster_genes(c1):
 
 def __read_predictions(pred_path, pkl_path, genes_in_biclusters, manager):
     if not os.path.exists(pkl_path):
-        print 'loading predictions...'
+        print('loading predictions...')
         tmp_set = set()
         tmp_dict = {}
         inFile = open(pred_path,'r')
@@ -728,15 +732,15 @@ def __read_predictions(pred_path, pkl_path, genes_in_biclusters, manager):
         inFile.close()
         tmp_set = set([item for sublist in tmp_dict.values() for item in sublist])
         with open(pkl_path,'wb') as pklFile:
-            cPickle.dump(tmp_dict, pklFile)
-            cPickle.dump(tmp_set, pklFile)
+            pickle.dump(tmp_dict, pklFile)
+            pickle.dump(tmp_set, pklFile)
 
     # Otherwise load the dumped pickle file if it exists
     else:
-        print 'Loading pickled predictions...'
+        print('Loading pickled predictions...')
         with open(pkl_path,'rb') as pklFile:
-            tmp_dict = cPickle.load(pklFile)
-            tmp_set = cPickle.load(pklFile)
+            tmp_dict = pickle.load(pklFile)
+            tmp_set = pickle.load(pklFile)
 
     pred_dict = manager.dict(tmp_dict)
     pred_total_targets = manager.list()
@@ -748,28 +752,27 @@ def __compute_enrichment(c1, name,  pkl_path, pred_path, pred_pkl_path):
     """General enrichment analysis function"""
     global g_pred_dict, g_pred_total_targets, g_biclusters
 
-    print 'Running %s enrichment on Biclusters:' % name
+    print('Running %s enrichment on Biclusters:' % name)
 
     if not os.path.exists(pkl_path):
-        print 'Get a list of all genes in run...'
+        print('Get a list of all genes in run...')
         mgr = Manager()
         g_biclusters = mgr.dict(c1.biclusters)
         g_pred_dict, g_pred_total_targets = __read_predictions(pred_path, pred_pkl_path,
                                                                __bicluster_genes(c1), mgr)
-        print '%s prediction has %d TFs.' % (name, len(g_pred_dict))
-
-        print 'Running %s enrichment analyses...' % name
+        print('%s prediction has %d TFs.' % (name, len(g_pred_dict)))
+        print('Running %s enrichment analyses...' % name)
         pool = Pool(processes=int(cfg['cores']))
         result = pool.map(cluster_hypergeo, c1.biclusters.keys())
         pool.close()
         pool.join()
 
         with open(pkl_path, 'wb') as pklFile:
-            cPickle.dump(result, pklFile)
+            pickle.dump(result, pklFile)
     else:
-        print 'Loading precached analysis...'
+        print('Loading precached analysis...')
         with open(pkl_path, 'rb') as pklFile:
-            result = cPickle.load(pklFile)
+            result = pickle.load(pklFile)
     return result
 
 
@@ -779,13 +782,13 @@ def compute_tfbsdb_enrichment(cfg, c1):
         res1 = __compute_enrichment(c1, 'TFBS_DB', cfg.outdir_path('tfbs_db.pkl'),
                                     cfg['tfbsdb'], cfg['tfbsdb-pkl'])
 
-        print 'Storing results...'
+        print('Storing results...')
         for r1 in res1:
             # r1 = [biclusterId, tf(s), Percent Targets, P-Value]
             bicluster = c1.biclusters[r1[0]]
             bicluster.add_attribute('tfbs_db', {'tf':r1[1], 'percentTargets': r1[2],
                                                 'pValue':r1[3]})
-        print 'Done.\n'
+        print('Done.\n')
         c1.tfbs_db = True
 
 
@@ -796,7 +799,7 @@ def compute_3pUTR_pita_set_enrichment(cfg, c1, mirna_ids):
                                     cfg['pita'],
                                     os.path.join(cfg['mirna-dir'], 'pita.pkl'))
 
-        print 'Storing results...'
+        print('Storing results...')
         for r1 in res1:
             # r1 = [biclusterId, miRNA(s), Percent Targets, P-Value]
             bicluster = c1.biclusters[r1[0]]
@@ -807,7 +810,7 @@ def compute_3pUTR_pita_set_enrichment(cfg, c1, mirna_ids):
                                                    'percentTargets': r1[2],
                                                    'pValue': r1[3],
                                                    'mature_seq_ids': miRNA_mature_seq_ids})
-        print 'Done.\n'
+        print('Done.\n')
         c1.pita_3pUTR = True
 
 
@@ -817,7 +820,7 @@ def compute_3pUTR_targetscan_set_enrichment(cfg, c1, mirna_ids):
         res1 = __compute_enrichment(c1, 'TargetScan', cfg.outdir_path('targetscan_3pUTR.pkl'),
                                     cfg['targetscan'], os.path.join(cfg['mirna-dir'], 'targetScan.pkl'))
 
-        print 'Storing results...'
+        print('Storing results...')
         for r1 in res1:
             # r1 = [biclusterId, miRNA(s), Percent Targets, P-Value]
             bicluster = c1.biclusters[r1[0]]
@@ -827,7 +830,7 @@ def compute_3pUTR_targetscan_set_enrichment(cfg, c1, mirna_ids):
             bicluster.add_attribute('targetscan_3pUTR',
                                     {'miRNA': r1[1], 'percentTargets': r1[2],
                                      'pValue':r1[3], 'mature_seq_ids': miRNA_mature_seq_ids})
-        print 'Done.\n'
+        print('Done.\n')
         c1.targetscan_3pUTR = True
 
 
@@ -856,11 +859,11 @@ def compute_additional_info(cfg, mirna_ids, gene_conv):
         compute_3pUTR_targetscan_set_enrichment(cfg, c1, mirna_ids)
 
         with open(cm_pkl_path, 'wb') as outfile:
-            cPickle.dump(c1, outfile)
+            pickle.dump(c1, outfile)
     else:
-        print 'Loading prechached cMonkey Object (c1_all.pkl):'
+        print('Loading prechached cMonkey Object (c1_all.pkl):')
         with open(cm_pkl_path, 'rb') as infile:
-            c1 = cPickle.load(infile)
+            c1 = pickle.load(infile)
     return c1
 
 def convertSex(x):
@@ -877,7 +880,7 @@ def post_process(arg):
     global RATIOS
     cluster_num, bicluster, phenotypes = arg
     attributes = {}
-    print ' Postprocessing cluster:', cluster_num
+    print(' Postprocessing cluster:', cluster_num)
 
     attributes['k'] = cluster_num
     attributes['k.rows'] = bicluster.num_genes()
@@ -921,7 +924,7 @@ def post_process(arg):
     return attributes
 
 def __read_ratios(cfg):
-    print "reading ratios matrix"
+    print("reading ratios matrix")
     ratios = {}
     with open(cfg['all-ratios-file'], 'r') as infile:
         conditions = [i.strip('"') for i in infile.readline().strip().split(',')]
@@ -931,13 +934,13 @@ def __read_ratios(cfg):
     return ratios
 
 def dump_cluster_members(cfg, c1):
-    print "dump cluster row members"
+    print("dump cluster row members")
 
     with open(cfg.outdir_path('cluster.members.genes.txt'), 'w') as outfile:
         for cluster_num in c1.biclusters:
             outfile.write('%s %s\n' % (cluster_num, ' '.join(c1.biclusters[cluster_num].genes)))
 
-    print "dump cluster condition members"
+    print("dump cluster condition members")
     with open(cfg.outdir_path('cluster.members.conditions.txt'), 'w') as outfile:
         for cluster_num in c1.biclusters:
             outfile.write('%s %s\n' % (cluster_num, ' '.join(c1.biclusters[cluster_num].conditions)))
@@ -945,7 +948,7 @@ def dump_cluster_members(cfg, c1):
 
 def __get_cluster_eigengenes(cfg, c1):
     # Calculate bicluster eigengene (first principal components)
-    print "Compute bicluster eigengenes"
+    print("Compute bicluster eigengenes")
     app_path = os.path.join(THIS_DIR, 'getEigengene.R')
     cluster_eigengenes_path = cfg.outdir_path('biclusterEigengenes.csv')
     if not os.path.exists(cluster_eigengenes_path):
@@ -955,11 +958,11 @@ def __get_cluster_eigengenes(cfg, c1):
                                      '-c', str(cfg['cores'])],
                                     stderr=subprocess.STDOUT)
         if ret == 1:
-            print "could not create Eigengenes"
+            print("could not create Eigengenes")
             exit(1)
 
     # Read in bicluster eigengene
-    print "read bicluster eigengenes"
+    print("read bicluster eigengenes")
     with open(cluster_eigengenes_path, 'r') as infile:
         patients = [i.strip('"') for i in infile.readline().strip().split(',')]
         patients.pop(0) # Get rid of rowname placeholder
@@ -972,7 +975,7 @@ def __get_cluster_eigengenes(cfg, c1):
 
 
 def __get_cluster_variance_explained(cfg, c1):
-    print "read bicluster variance explained"
+    print("read bicluster variance explained")
     with open(cfg.outdir_path('biclusterVarianceExplained.csv'), 'r') as infile:
         infile.readline() # Get rid of header
         for line in infile:
@@ -983,7 +986,7 @@ def __get_cluster_variance_explained(cfg, c1):
 
 
 def __get_phenotype_info(cfg, c1):
-    print "read phenotype information"
+    print("read phenotype information")
     phenotypes = {}
     with open(cfg['phenotypes-file'], 'r') as infile:
         ids = infile.readline().strip().split(',')[1:]
@@ -1017,10 +1020,10 @@ def __do_postprocess(cfg, c1, phenotypes):
 
         # Dump res1 into a pkl
         with open(postprocess_pkl_path, 'wb') as outfile:
-            cPickle.dump(res1, outfile)
+            pickle.dump(res1, outfile)
     else:
         with open(postprocess_pkl_path, 'rb') as infile:
-            res1 = cPickle.load(infile)
+            res1 = pickle.load(infile)
 
     # Put results in cMonkey object
     for entry in res1:
@@ -1028,14 +1031,14 @@ def __do_postprocess(cfg, c1, phenotypes):
         for attribute in entry:
             if not attribute == 'k':
                 bicluster.add_attribute(attribute, entry[attribute])
-    print 'Done.\n'
+    print('Done.\n')
 
 
 def __tomtom_upstream_motifs(cfg):
     #################################################################
     ## TomTom Upstream motifs versus Jaspar and Transfac           ##
     #################################################################
-    print 'Running TOMTOM on Upstream Motifs:'
+    print('Running TOMTOM on Upstream Motifs:')
 
     # Make needed directories
     cfg.clear_tmp()
@@ -1061,19 +1064,19 @@ def __tomtom_upstream_motifs(cfg):
             outFile.write('Motif Name,Original E-Value,Consensus,JASPAR Motif,JASPAR Consensus,TomTom.pValue,TomTom.qValue,Probe In Bicluster,Bicluster Residual')
 
             # Making MEME formatted files (make_files function in utils)
-            print 'Making files...'
+            print('Making files...')
             for i, target_pssms in enumerate(target_pssms_in):
                 utils.make_files(c1.nucFreqsUpstream, pssms.values(),
                                  target_pssms.values(), i)
 
             # Run TomTom
-            print 'Comparing Upstream motifs against databases...'
+            print('Comparing Upstream motifs against databases...')
             pool = Pool(processes=int(cfg['cores']))
             res1 = pool.map(run_tomtom, [i for i in range(len(target_pssms_in))])
             pool.close()
             pool.join()
 
-            print 'Reading in Tomtom run...'
+            print('Reading in Tomtom run...')
             output_lines = []
             for i in range(len(target_pssms_in)):
                 with open(cfg.tmpdir_path('tomtom_out/tomtom%d.out' % i), 'r') as tomtom_outfile:
@@ -1082,7 +1085,7 @@ def __tomtom_upstream_motifs(cfg):
                                     if float(line.split('\t')[5]) <= 0.05]
 
             # Now iterate through output and save data
-            print 'Now parsing output for %d matches...' % len(output_lines)
+            print('Now parsing output for %d matches...' % len(output_lines))
             for outputLine in output_lines:
                 if len(outputLine) == 10 and float(outputLine[5]) <= 0.05:
                     tfName = outputLine[1].split('_')[0]
@@ -1092,17 +1095,17 @@ def __tomtom_upstream_motifs(cfg):
                         upstreamMatches[outputLine[0]].append({'factor':outputLine[1],'confidence':outputLine[5]})
 
         with open(comparison_pkl_path,'wb') as pklFile:
-            cPickle.dump(upstreamMatches, pklFile)
+            pickle.dump(upstreamMatches, pklFile)
     else:
-        print 'Loading precached upstream matches...'
+        print('Loading precached upstream matches...')
         with open(comparison_pkl_path, 'rb') as pklFile:
-            upstreamMatches = cPickle.load(pklFile)
+            upstreamMatches = pickle.load(pklFile)
 
     # Pump into pssms
     for pssmName in upstreamMatches:
         for match in upstreamMatches[pssmName]:
             pssms[pssmName].add_match(factor=match['factor'], confidence=match['confidence'])
-    print 'We matched '+str(len(upstreamMatches))+' upstream motifs.\n'
+    print('We matched '+str(len(upstreamMatches))+' upstream motifs.\n')
 
 
 def __expand_tf_factor_list(entrez2id):
@@ -1110,7 +1113,7 @@ def __expand_tf_factor_list(entrez2id):
     ## Prepare to get expanded set of TFs from TFClass             ##
     ## (http://tfclass.bioinf.med.uni-goettingen.de/)              ##
     #################################################################
-    print 'Expanding TF factor list with TFClass families...'
+    print('Expanding TF factor list with TFClass families...')
     # Read in humanTFs_All.csv with <TF Name>,<Entrez ID>
     tfName2entrezId = {}
     with open(cfg['tfExpansion']['tfs'],'r') as inFile:
@@ -1158,7 +1161,7 @@ def __expand_tf_factor_list(entrez2id):
             for factor in expanded_factors:
                 for expanded_factor in list(set(expanded_factors[factor])):
                     pssm.add_expanded_match(expanded_factor, factor)
-    print 'Finished expanding TF factor list.\n'
+    print('Finished expanding TF factor list.\n')
     return tfName2entrezId, tfFamilies
 
 
@@ -1167,7 +1170,7 @@ def __correlate_tfs_with_cluster_eigengenes(cfg, c1):
     #######################################################################
     ## Filter expanded TFs through correlation with bicluster eigengenes ##
     #######################################################################
-    print 'Correlate TFs with eigengenes...'
+    print('Correlate TFs with eigengenes...')
 
     # Get microarray data
     exp_data = {}
@@ -1184,7 +1187,7 @@ def __correlate_tfs_with_cluster_eigengenes(cfg, c1):
 
             # Get maximum amount of correlation positive or negative
             if len(pssm.expanded_matches) > 0:
-                print cluster_num, pssm.name, len(pssm.expanded_matches)
+                print(cluster_num, pssm.name, len(pssm.expanded_matches))
                 for factor in pssm.expanded_matches:
                     corMax = []
                     if factor['factor'] in exp_data.keys():
@@ -1192,21 +1195,19 @@ def __correlate_tfs_with_cluster_eigengenes(cfg, c1):
                         if (not factor['factor'] in compared) and (not sum([1 for i in eigengene.values() if i=='NA'])==len(eigengene)) and (float(sum([1 for i in exp_data[factor['factor']].values() if i=='NA']))/float(len(exp_data[factor['factor']])))<=0.8:
                             compared.append(factor['factor'])
                             tmp_names = set(eigengene.keys()).intersection(all_names)
-                            #print [eigengene[i] for i in tmp_names]
-                            #print [exp_data[factor['factor']][i] for i in tmp_names]
                             cor1 = correlation([eigengene[i] for i in tmp_names], [exp_data[factor['factor']][i] for i in tmp_names])
-                            print factor['factor'], cor1
+                            print(factor['factor'], cor1)
                             if corMax==[] or abs(cor1[0])>abs(corMax[0]):
                                 corMax = cor1
                     if not corMax==[]:
                         pssm.add_correlated_match(factor['factor'],corMax[0],corMax[1])
-    print 'Done.\n'
+    print('Done.\n')
     return exp_data, all_names
 
 
 def __expand_and_correlate_tfbsdb_tfs(c1, tf_name2entrezid, tf_families, exp_data,
                                       all_names):
-    print 'Expand and correlate TFBS_DB TFs...'
+    print('Expand and correlate TFBS_DB TFs...')
     for bicluster in c1.biclusters.values():
         # Get the tfbs_db attribute and for each TF get the list of expanded factors
         tfs = bicluster.attributes['tfbs_db']
@@ -1227,7 +1228,7 @@ def __expand_and_correlate_tfbsdb_tfs(c1, tf_name2entrezid, tf_families, exp_dat
 
         # Push expanded TF factor list into the bicluster object
         if len(expanded_factors) > 0:
-            print factor, expanded_factors
+            print(factor, expanded_factors)
         bicluster.add_attribute('tfbs_db_expanded', expanded_factors)
 
     # [rho, pValue] = correlation(a1,a2)
@@ -1246,17 +1247,17 @@ def __expand_and_correlate_tfbsdb_tfs(c1, tf_name2entrezid, tf_families, exp_dat
                         compared.append(factor2)
                         tmp_names = set(eigengene.keys()).intersection(all_names)
                         cor1 = correlation([eigengene[i] for i in tmp_names], [exp_data[factor2][i] for i in tmp_names])
-                        print 'Expanded:', factor2, cor1
+                        print('Expanded:', factor2, cor1)
                         if corMax==[] or abs(cor1[0])>abs(corMax[0]):
                             corMax = cor1
                     if not corMax==[]:
                         correlatedFactor.append({'factor':factor2,'rho':corMax[0],'pValue':corMax[1]})
-    	bicluster.add_attribute('tfbs_db_correlated', correlatedFactor)
-    print 'Done.\n'
+        bicluster.add_attribute('tfbs_db_correlated', correlatedFactor)
+    print('Done.\n')
 
 
 def __write_first_principal_components(cfg, c1):
-    print 'Write biclusterFirstPrincComponents.csv...'
+    print('Write biclusterFirstPrincComponents.csv...')
     # Get all first principal components for each bicluster
     fpcWrite = []
     conditions = c1.biclusters[1].attributes['pc1'].keys()
@@ -1268,7 +1269,7 @@ def __write_first_principal_components(cfg, c1):
     with open(cfg.outdir_path(cfg["first-principal-comps-result-file"]), 'w') as outfile:
         outfile.write('Bicluster,'+','.join([j.strip() for j in conditions])+'\n')
         outfile.write('\n'.join(fpcWrite))
-    print 'Done.\n'
+    print('Done.\n')
 
 
 def __get_permuted_pvalues_for_upstream_meme_motifs(cfg, c1):
@@ -1283,8 +1284,8 @@ def __get_permuted_pvalues_for_upstream_meme_motifs(cfg, c1):
         outFile = open(output_path, 'w')
         outFile.write('Motif Name,Region,Original E-Value,Consensus,Permuted E-Value < 10,Similar,Total Permutations,Permuted P-Value')
         pssmsNames = pssms.keys()
-        print pssmsNames
-        print 'Loading precached random PSSMs...'
+        print(pssmsNames)
+        print('Loading precached random PSSMs...')
         randPssmsDict = {}
         for i in range(5, 70, 5):  # [5,10,15,... ,65]:
             stdout.write(str(i)+' ')
@@ -1301,7 +1302,7 @@ def __get_permuted_pvalues_for_upstream_meme_motifs(cfg, c1):
             for j in delMes:
                 del randPssmsDict[i][j]
 
-        print '\nMaking files...'
+        print('\nMaking files...')
         for i in range(len(pssms)):
             clustSize = utils.rand_pssm_clust_size(c1.biclusters[int(pssmsNames[i].split('_')[0])].num_genes())
             utils.make_files(c1.nucFreqsUpstream, [pssms[pssmsNames[i]]],
@@ -1309,14 +1310,14 @@ def __get_permuted_pvalues_for_upstream_meme_motifs(cfg, c1):
 
         # Run this using all cores available
         cpus = int(cfg['cores'])
-        print 'There are', cpus,'CPUs available.'
-        print 'Running TOMTOM to compare PSSMs...'
+        print('There are', cpus,'CPUs available.')
+        print('Running TOMTOM to compare PSSMs...')
         pool = Pool(processes=cpus)
         pool.map(run_tomtom, range(len(pssms)))
         pool.close()
         pool.join()
 
-        print 'Reading in Tomtom run...'
+        print('Reading in Tomtom run...')
         for run in range(len(pssms)):
             tomtomPValues = {}
             with open(cfg.tmpdir_path('tomtom_out/tomtom%d.out' % run), 'r') as infile:
@@ -1344,22 +1345,22 @@ def __get_permuted_pvalues_for_upstream_meme_motifs(cfg, c1):
             outFile.write('\n'+str(outputLine[0])+',upstream,'+str(pssms[outputLine[0]].evalue)+',' + pssm_mod.consensus_motif(pssms[outputLine[0]]) + ',' + str(len(pValues)) + ',' + str(similar) + ',' + str(1000) + ',' + str(float(similar)/float(1000)))
         outFile.close()
     else:
-        print 'Using precalculated upstream p-values...'
+        print('Using precalculated upstream p-values...')
         with open(output_path, 'r') as infile:
             infile.readline()
             upPValues = [line.strip().split(',') for line in infile]
 
         for line in upPValues:
             pssms[line[0]].permuted_pvalue = float(line[7]) / 1000.0
-    print 'Done.\n'
+    print('Done.\n')
 
 
 def __run_mirvestigator_3putr(cfg, c1):
     """Compare 3' UTR Weeder Motifs to miRBase using miRvestigator"""
-    print 'Running miRvestigator on 3\' UTR Motifs:'
+    print('Running miRvestigator on 3\' UTR Motifs:')
     pkl_path = cfg.outdir_path('m2m.pkl')
     if not os.path.exists(pkl_path):
-        print 'Computing miRNA matches...'
+        print('Computing miRNA matches...')
         pssms = c1.pssms_3putr()
         seqs3pUTR = c1.seqs3pUTR.values()
 
@@ -1375,19 +1376,19 @@ def __run_mirvestigator_3putr(cfg, c1):
                             species=cfg['mirvestigator']['species'],
                             miRNA_dir=cfg['mirna-dir'])
         with open(pkl_path, 'wb') as outfile:
-            cPickle.dump(m2m, outfile)
+            pickle.dump(m2m, outfile)
     else:
-        print 'Loading precached miRNA matches...'
+        print('Loading precached miRNA matches...')
         with open(pkl_path, 'rb') as infile:
-            m2m = cPickle.load(infile)
-    print 'Done.\n'
+            m2m = pickle.load(infile)
+    print('Done.\n')
 
 
 def __convert_mirvestigator_3putr_results(cfg, c1, mirna_ids):
     """Convert miRNAs and Get permuted p-values for 3' UTR motifs"""
 
     pssms = c1.pssms_3putr()
-    print 'Loading miRvestigator results...'
+    print('Loading miRvestigator results...')
     # Convert miRvestigator results
     pkl_path = cfg.outdir_path('miRvestigatorResults.pkl')
     if not os.path.exists(pkl_path):
@@ -1405,21 +1406,21 @@ def __convert_mirvestigator_3putr_results(cfg, c1, mirna_ids):
                     pssms[line[0]].add_match(factor=m1, confidence=line[2])
 
         with open(pkl_path, 'wb') as outfile:
-            cPickle.dump(miRNA_matches, outfile)
+            pickle.dump(miRNA_matches, outfile)
     else:
         with open(pkl_path, 'rb') as infile:
-            miRNA_matches = cPickle.load(infile)
+            miRNA_matches = pickle.load(infile)
             for m1 in miRNA_matches:
                 for m2 in miRNA_matches[m1]['mature_seq_ids']:
                     pssms[m1].add_match(factor=m2, confidence=miRNA_matches[m1]['model'])
 
     # Compile results to put them into the postProcessed
-    print 'Get perumted p-values for 3\' UTR motifs...'
+    print('Get perumted p-values for 3\' UTR motifs...')
     with open(cfg['rand-pssms-dir']+'/weederRand.pkl', 'rb') as infile:
-        weederRand = cPickle.load(infile)
+        weederRand = pickle.load(infile)
 
     with open(cfg['rand-pssms-dir']+'/weederRand_all.pkl', 'rb') as infile:
-        weederRand_all = cPickle.load(infile)
+        weederRand_all = pickle.load(infile)
 
     clustSizes = sorted(weederRand['8bp'].keys())
     for pssm1 in pssms:
@@ -1436,7 +1437,7 @@ def __convert_mirvestigator_3putr_results(cfg, c1, mirna_ids):
 
         # note the inconsistent usage of the permuted_pvalue attribute
         pssms[pssm1].permuted_pvalue = {'pValue':pValue,'pValue_all':pValue_all}
-    print 'Done.\n'
+    print('Done.\n')
 
 
 def run_replication(params):
@@ -1447,7 +1448,7 @@ def run_replication(params):
     ## What actually needs to be done is to move the script into this project and
     ## make it configurable
     cfg, rep_script = params  # from Pool.map()
-    print '  Replication running for %s...' % rep_script
+    print('  Replication running for %s...' % rep_script)
     script_path = os.path.join(cfg['custom-script-dir'], 'replication_' + rep_script,
                                'replicationDatasetPermutation.R')
     ret = subprocess.check_call('Rscript ' + script_path + ' -d ' + rep_script + ' -o ' + cfg['outdir'],
@@ -1476,10 +1477,10 @@ def __make_replication_pvalues(cfg, c1):
                 if not os.path.exists(cfg.outdir_path('replicationPvalues_%s.csv' % name))]
 
     if len(run_sets) > 0:
-        print 'Run replication..'
+        print('Run replication..')
         # Run this using all cores available
         cpus = int(cfg['cores'])
-        print 'There are', cpus,'CPUs available.'
+        print('There are', cpus, 'CPUs available.')
         pool = Pool(processes=cpus)
         pool.map(run_replication, run_sets)
         pool.close()
@@ -1496,14 +1497,14 @@ def __read_replication_pvalues(cfg, c1):
                 if os.path.exists(cfg.outdir_path('replicationPvalues_%s.csv' % name))]
     for run_set in run_sets:
         # Read in replication p-values - mesoTCGA Dataset
-        print 'Loading replication p-values...'
+        print('Loading replication p-values...')
         with open(cfg.outdir_path('replicationPvalues_%s.csv' % run_set), 'r') as infile:
             infile.readline()
             for line in infile:
                 splitUp = line.strip().split(',')
                 bicluster = c1.biclusters[int(splitUp[0].replace('"',''))]
                 bicluster.add_attribute(key='replication_'+run_set,value=dict(zip([run_set+'_var.exp',run_set+'_avg.pc1.var.exp',run_set+'_pc1.perm.p',run_set+'_OS',run_set+'_OS.p',run_set+'_OS.age',run_set+'_OS.age.p', run_set+'_OS.age.sex',run_set+'_OS.age.sex.p'],splitUp[3:])))
-    print 'Done.\n'
+    print('Done.\n')
 
 
 def __make_permuted_pvalues(cfg, c1):
@@ -1512,7 +1513,7 @@ def __make_permuted_pvalues(cfg, c1):
     ###########################################################################
     pvalues_path = cfg.outdir_path('residualPermutedPvalues_permAll.csv')
     if not os.path.exists(pvalues_path):
-        print 'Calculating FPC permuted p-values...'
+        print('Calculating FPC permuted p-values...')
         app_path = os.path.join(THIS_DIR, 'permutedResidualPvalues_permAll_mc.R')
         ret = subprocess.check_call([app_path,
                                      '-o', cfg['outdir'],
@@ -1520,15 +1521,15 @@ def __make_permuted_pvalues(cfg, c1):
                                      '-c', str(cfg['cores'])],
                                     stderr=subprocess.STDOUT)
         if ret == 1:
-            print "error in calling R script."
+            print("error in calling R script.")
             exit(1)
 
-        print 'Done.\n'
+        print('Done.\n')
 
     #################################################################
     ## Read in residual permutations to use for filtering          ##
     #################################################################
-    print 'Load residual permuted p-values...'
+    print('Load residual permuted p-values...')
     with open(pvalues_path, 'r') as infile:
         # "","bicluster","n.rows","n.cols","orig.resid","avg.perm.resid","perm.p","orig.resid.norm","avg.norm.perm.resid","norm.perm.p","pc1.var.exp","avg.pc1.var.exp","pc1.perm.p"
         infile.readline()
@@ -1536,7 +1537,7 @@ def __make_permuted_pvalues(cfg, c1):
             splitUp = line.strip().split(',')
             bicluster = c1.biclusters[int(splitUp[0].strip('"'))]
             bicluster.add_attribute(key='pc1.perm.p',value=str(splitUp[7]))
-    print 'Done.\n'
+    print('Done.\n')
 
 
 def __make_functional_enrichment(cfg, c1):
@@ -1545,19 +1546,19 @@ def __make_functional_enrichment(cfg, c1):
     #################################################################
     # Note that these are external to the project and have hard-coded paths !!!
     if not os.path.exists(cfg.outdir_path('biclusterEnrichment_GOBP.csv')):
-        print 'Run functional enrichment...'
+        print('Run functional enrichment...')
         app_path = os.path.join(THIS_DIR, 'enrichment.R')
         app_args = [app_path, '-o', cfg['outdir'], '-l', cfg['enrichment-library']]
         ret = subprocess.check_call(app_args, stderr=subprocess.STDOUT)
         if ret == 1:
             raise Exception('could not run functional enrichment')
 
-        print 'Done.\n'
+        print('Done.\n')
 
     #################################################################
     ## Read in functional enrichment                               ##
     #################################################################
-    print 'Load GO Biological Process functional enrichment...'
+    print('Load GO Biological Process functional enrichment...')
     with open(cfg.outdir_path('biclusterEnrichment_GOBP.csv'), 'r') as infile:
         infile.readline()  # Get rid of header
         lines = [line.strip().split(',') for line in infile]
@@ -1565,7 +1566,7 @@ def __make_functional_enrichment(cfg, c1):
     for line in lines:
         bicluster = c1.biclusters[int(line[0].strip('"'))]
         bicluster.add_attribute(key='goTermBP',value=line[2].strip('"').split(';'))
-    print 'Done.\n'
+    print('Done.\n')
 
 
 def __make_go_term_semantic_similarity(cfg, c1):
@@ -1573,16 +1574,16 @@ def __make_go_term_semantic_similarity(cfg, c1):
     ## Run GO term semantic similarity                             ##
     #################################################################
     if not os.path.exists(cfg.outdir_path('jiangConrath_hallmarks.csv')):
-        print 'Run semantic similarity...'
+        print('Run semantic similarity...')
         app_path = os.path.join(THIS_DIR, 'goSimHallmarksOfCancer.R')
         ret = subprocess.check_call("%s -o %s" % (app_path, cfg.outdir),
                                     stderr=subprocess.STDOUT, shell=True)
         if ret == 1:
             raise Exception('could not run semantic similarity')
 
-        print 'Done.\n'
+        print('Done.\n')
 
-    print 'Load Jiang-Conrath semantic similarity to Hallmarks of Cancer...'
+    print('Load Jiang-Conrath semantic similarity to Hallmarks of Cancer...')
     with open(cfg.outdir_path('jiangConrath_hallmarks.csv'), 'r') as infile:
         hallmarks = [i for i in infile.readline().split(',') if not i.strip('"')=='']
         lines = [line.strip().split(',') for line in infile]
@@ -1590,7 +1591,7 @@ def __make_go_term_semantic_similarity(cfg, c1):
         for line in lines:
             bicluster = c1.biclusters[int(line[0].strip('"'))]
             bicluster.add_attribute(key='hallmarksOfCancer',value=dict(zip(hallmarks,line[1:])))
-        print 'Done.\n'
+        print('Done.\n')
 
 
 def perform_postprocessing(cfg, c1, entrez2id, mirna_ids):
@@ -1610,15 +1611,15 @@ def perform_postprocessing(cfg, c1, entrez2id, mirna_ids):
             tf_name2entrezid, tf_families = __expand_tf_factor_list(entrez2id)
             exp_data, all_names = __correlate_tfs_with_cluster_eigengenes(cfg, c1)
             __expand_and_correlate_tfbsdb_tfs(c1, tf_name2entrezid, tf_families, exp_data, all_names)
-            print 'Dumping interim post-processing Object:'
+            print('Dumping interim post-processing Object:')
             with open(interim_path, 'wb') as outfile:
-                cPickle.dump(c1, outfile)
-            print 'Done.\n'
+                pickle.dump(c1, outfile)
+            print('Done.\n')
         else:
-            print 'Loading from precached cMonkey Object:'
+            print('Loading from precached cMonkey Object:')
             with open(interim_path, 'rb') as infile:
-                c1 = cPickle.load(infile)
-            print 'Done.\n'
+                c1 = pickle.load(infile)
+            print('Done.\n')
         __write_first_principal_components(cfg, c1)
         __get_permuted_pvalues_for_upstream_meme_motifs(cfg, c1)
         __run_mirvestigator_3putr(cfg, c1)
@@ -1634,16 +1635,16 @@ def perform_postprocessing(cfg, c1, entrez2id, mirna_ids):
             # hallmarks is not found
             pass
 
-        print 'Dumping Final cMonkey Object:'
+        print('Dumping Final cMonkey Object:')
         with open(pkl_path, 'wb') as outfile:
-            cPickle.dump(c1, outfile)
-        print 'Done.\n'
+            pickle.dump(c1, outfile)
+        print('Done.\n')
 
     else:
-        print 'Loading from precached cMonkey Object:'
+        print('Loading from precached cMonkey Object:')
         with open(pkl_path, 'rb') as infile:
-            c1 = cPickle.load(infile)
-        print 'Done.\n'
+            c1 = pickle.load(infile)
+        print('Done.\n')
     return c1
 
 
@@ -1653,13 +1654,13 @@ def run_neo(cfg):
     neo_output_dir = cfg.outdir_path('causality_%s' % project_name)
     if not os.path.exists(neo_output_dir):
         ## Run the runNEO.R script and do the causality analyses
-        print '  Network edge orienting (NEO)...'
+        print('  Network edge orienting (NEO)...')
         app_path = os.path.join(THIS_DIR, 'NEO/runNEO_V2.R')
         csv_file = os.path.join(cfg['outdir'], 'biclusterEigengenes.csv')
         app_call = [app_path, '-o', cfg['outdir'], '-r', cfg['all-ratios-file'],
                     '-m', cfg['mirna-file'], '-s', cfg['som-muts-file'], '-t', project_name,
                     '-e', csv_file, '-c', str(cfg['cores'])]
-        print app_call
+        print(app_call)
         ret = subprocess.check_call(app_call, stderr=subprocess.STDOUT)
         if ret == 1:
             raise Exception('could not run causality analyses')
@@ -1740,8 +1741,7 @@ def add_correspondent_regulators(cfg, c1, causal_summary, mirna_ids_rev):
         for pssm in bicluster.pssms_3putr:
             for miR in pssm.matches:
                 if miR['confidence'] in ['8mer','7mer_a1','7mer_m8']:
-                    print miR['factor'], miR['factor'] in mirna_ids_rev
-                    #miRNAs += mirna_ids_rev[miR['factor']]
+                    print(miR['factor'], miR['factor'] in mirna_ids_rev)
                     miRNAs += miR['factor']
 
         # 2. PITA (not correlated)
@@ -1769,7 +1769,7 @@ def write_final_result(cfg, c1, mirna_ids_rev):
     #################################################################
     ## Write out the final post-processed file                     ##
     #################################################################
-    print 'Write postProcessedVFinal.csv...'
+    print('Write postProcessedVFinal.csv...')
     postOut = []
     try:
         if cfg['hallmarks']:
@@ -1782,7 +1782,7 @@ def write_final_result(cfg, c1, mirna_ids_rev):
         bicluster = c1.biclusters[cluster_num]
         # Write file line by line
         #   a. Bicluster basics:  id, genes, conditions, resid, resid.norm, resid.norm.perm.p
-        print cluster_num #, bicluster.attributes
+        print(cluster_num)
         writeMe += [str(cluster_num),
                     str(bicluster.num_genes()),  # genes
                     str(bicluster.num_conditions())]  # conditions
@@ -2014,7 +2014,7 @@ def write_final_result(cfg, c1, mirna_ids_rev):
         if not cfg['phenotypes-file']=='NA':
             for association in PHENOTYPES:
                 if association in bicluster.attributes:
-                    print 'ass1', bicluster.attributes[association]
+                    print('ass1', bicluster.attributes[association])
                     ass1 = bicluster.attributes[association]
                     writeMe += [str(ass1['T']), str(ass1['pValue'])]
                 else:
@@ -2086,7 +2086,7 @@ def write_final_result(cfg, c1, mirna_ids_rev):
         header += ['Genes']
         postFinal.write(','.join(header)+'\n'+'\n'.join([','.join(i) for i in postOut]))
 
-    print 'Done.\n'
+    print('Done.\n')
 
 
 if __name__ == '__main__':

@@ -134,5 +134,5 @@ class Bicluster:
     # Add attribute
     def add_attribute(self, key, value):
         if key is None or value is None:
-            print 'Error:  Key or Value have no data'
+            print('Error:  Key or Value have no data')
         self.attributes[key] = value

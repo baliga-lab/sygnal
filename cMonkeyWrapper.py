@@ -69,7 +69,7 @@ class cMonkeyWrapper:
         cur.execute(q1)
         self.maxIter = cur.fetchall()[0][0]
         con.close()
-        print 'Found '+str(ks)+' clusters.'
+        print('Found '+str(ks)+' clusters.')
         self.biclusters = {}
         for k in range(1,ks+1):
             self.biclusters[k] = Bicluster(k, self.maxIter, de_novo_method_upstream=de_novo_method_upstream, de_novo_method_3pUTR=de_novo_method_3pUTR, sqliteDb=sqliteDb)
@@ -119,7 +119,7 @@ class cMonkeyWrapper:
         nucFreqsFile.close()
         # Close database connection
         con.close()
-        print '\nDone loading.\n'
+        print('\nDone loading.\n')
 
     # Get all Upstream pssms
     def pssms_upstream(self, maxNormResid='NA', maxEValue='NA', maxSurv='NA',

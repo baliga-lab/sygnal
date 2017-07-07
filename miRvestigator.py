@@ -19,7 +19,11 @@
 
 from copy import deepcopy
 from sys import stdout
-import os, cPickle
+import os
+try:
+    import cPickle as pickle
+except:
+    import pickle
 import pssm as pssm_mod
 
 
@@ -29,7 +33,7 @@ class miRvestigator:
     def __init__(self, pssms, seqs3pUTR, seedModel=[6, 7, 8], minor=True,
                  p5=True, p3=True, textOut=True, wobble=True, wobbleCut=0.25,
                  baseDir='', outName='', species='hsa', miRNA_dir='miRNA'):
-        print '\nmiRvestigator analysis started...'
+        print('\nmiRvestigator analysis started...')
         self.pssms = pssms
         self.species = species
         self.miRNA_dir = miRNA_dir  # must come before setMiRNAs
@@ -52,7 +56,7 @@ class miRvestigator:
         if not os.path.exists(dirName):
             os.mkdir(dirName)
         if 6 in seedModel:
-            print 'Screening out 6mers not present in 3\' UTRs...'
+            print('Screening out 6mers not present in 3\' UTRs...')
             if not os.path.exists(dirName+'/permKMers_6mers.pkl'):
                 permKMers_6mer = self.allKmers(6)
                 tmpKMers = []
@@ -61,14 +65,14 @@ class miRvestigator:
                         tmpKMers.append(i)
                 self.permKMers_6mer = tmpKMers
                 pklFile = open(dirName+'/permKMers_6mers.pkl','wb')
-                cPickle.dump(self.permKMers_6mer,pklFile)
+                pickle.dump(self.permKMers_6mer,pklFile)
             else:
                 pklFile = open(dirName+'/permKMers_6mers.pkl','rb')
-                self.permKMers_6mer = cPickle.load(pklFile)
+                self.permKMers_6mer = pickle.load(pklFile)
             pklFile.close()
 
         if 7 in seedModel:
-            print 'Screening out 7mers not present in 3\' UTRs...'
+            print('Screening out 7mers not present in 3\' UTRs...')
             if not os.path.exists(dirName+'/permKMers_7mers.pkl'):
                 permKMers_7mer = self.allKmers(7)
                 tmpKMers = []
@@ -77,14 +81,14 @@ class miRvestigator:
                         tmpKMers.append(i)
                 self.permKMers_7mer = tmpKMers
                 pklFile = open(dirName+'/permKMers_7mers.pkl','wb')
-                cPickle.dump(self.permKMers_7mer,pklFile)
+                pickle.dump(self.permKMers_7mer,pklFile)
             else:
                 pklFile = open(dirName+'/permKMers_7mers.pkl','rb')
-                self.permKMers_7mer = cPickle.load(pklFile)
+                self.permKMers_7mer = pickle.load(pklFile)
             pklFile.close()
 
         if 8 in seedModel:
-            print 'Screening out 8mers not present in 3\' UTRs...'
+            print('Screening out 8mers not present in 3\' UTRs...')
             if not os.path.exists(dirName+'/permKMers_8mers.pkl'):
                 permKMers_8mer = self.allKmers(8)
 
@@ -94,19 +98,19 @@ class miRvestigator:
                         tmpKMers.append(i)
                 self.permKMers_8mer = tmpKMers
                 pklFile = open(dirName+'/permKMers_8mers.pkl','wb')
-                cPickle.dump(self.permKMers_8mer,pklFile)
+                pickle.dump(self.permKMers_8mer,pklFile)
             else:
                 pklFile = open(dirName+'/permKMers_8mers.pkl','rb')
-                self.permKMers_8mer = cPickle.load(pklFile)
+                self.permKMers_8mer = pickle.load(pklFile)
             pklFile.close()
-        print 'Done.\n'
+        print('Done.\n')
         miRNAScores = {}
         cur = 1
         # Building HMM Model
         outMe = []
         for pssm in pssms:
-            print '\n%s' % pssm.name
-            print 'Building HMM model for ' + pssm_mod.consensus_motif(pssm) + '...'
+            print('\n%s' % pssm.name)
+            print('Building HMM model for ' + pssm_mod.consensus_motif(pssm) + '...')
             miRNAScores[pssm.name] = ['NA','NA']
             # Then setup the HMM
             ## States ##
@@ -194,10 +198,8 @@ class miRvestigator:
                     # Otherwise be random (0.25 x 4)
                     else:
                         ep['WOBBLE'+str(i)] = { 'A': 0.25, 'C': 0.25, 'G': 0.25, 'T': 0.25 }
-            #print sp, ep, tp
-            print 'Done.\n'
-
-            print 'Starting miRNA detection for ' + pssm_mod.consensus_motif(pssm) + ':'
+            print('Done.\n')
+            print('Starting miRNA detection for ' + pssm_mod.consensus_motif(pssm) + ':')
             # First try for perfect 8mer
             #  a. Do the Viterbi for all miRNAs
             vitMirnas = []
@@ -212,7 +214,7 @@ class miRvestigator:
                     vitMirnas = [miRNA]
                 elif float(forVit_8mer[2])==float(maxVitP):
                     vitMirnas.append(miRNA)
-            print maxVitP, vitMirnas
+            print(maxVitP, vitMirnas)
             totPs_8mer = []
             vitPs_8mer = []
             hits_8mer = 0
@@ -230,7 +232,7 @@ class miRvestigator:
                 totPs_8mer.append(permVit[0])
                 vitPs_8mer.append(permVit[2])
             if hits_8mer<=1:
-                print '8mer match!'
+                print('8mer match!')
                 outMe.append(pssm.name + ',' + '_'.join(vitMirnas) + ',8mer')
 
             if hits_8mer>1:
@@ -246,7 +248,7 @@ class miRvestigator:
                         vitMirnas = [miRNA]
                     elif float(forVit_7mer_m8[2])==float(maxVitP):
                         vitMirnas.append(miRNA)
-                print maxVitP, vitMirnas
+                print(maxVitP, vitMirnas)
                 totPs_7mer = []
                 vitPs_7mer = []
                 hits_7mer_m8 = 0
@@ -264,7 +266,7 @@ class miRvestigator:
                     totPs_7mer.append(permVit[0])
                     vitPs_7mer.append(permVit[2])
                 if hits_7mer_m8<=1:
-                    print '7mer-m8 match!'
+                    print('7mer-m8 match!')
                     outMe.append(pssm.name + ',' + '_'.join(vitMirnas) + ',7mer_m8')
 
                 # Finally try for perfect 7mer-a1
@@ -279,7 +281,7 @@ class miRvestigator:
                         vitMirnas = [miRNA]
                     elif float(forVit_7mer_a1[2])==float(maxVitP):
                         vitMirnas.append(miRNA)
-                print maxVitP, vitMirnas
+                print(maxVitP, vitMirnas)
                 totPs_7mer = []
                 vitPs_7mer = []
                 hits_7mer_a1 = 0
@@ -297,13 +299,13 @@ class miRvestigator:
                     totPs_7mer.append(permVit[0])
                     vitPs_7mer.append(permVit[2])
                 if hits_7mer_a1<=1:
-                    print '7mer-a1 match!'
+                    print('7mer-a1 match!')
                     outMe.append(pssm.name + ',' + '_'.join(vitMirnas) + ',7mer_a1')
             if hits_8mer > 1 and hits_7mer_m8 > 1 and hits_7mer_a1 > 1:
-                print 'No match!'
+                print('No match!')
                 outMe.append(pssm.name + ',NA,NA')
 
-        print 'miRvestigator analysis completed.\n'
+        print('miRvestigator analysis completed.\n')
         outFile = open(dirName+'/scores'+str(outName)+'.csv','w')
         outFile.write('pssm,miRNAs,match_type')
         outFile.write('\n'+'\n'.join(outMe))
@@ -327,7 +329,7 @@ class miRvestigator:
     def setMiRNAs(self,seedStart,seedEnd, minor=True, p5=True, p3=True):
         mature_fa_gz_path = os.path.join(self.miRNA_dir, 'mature.fa.gz')
         if not os.path.exists(mature_fa_gz_path):
-            print '\nDownloading miRNA seeds from miRBase.org...'
+            print('\nDownloading miRNA seeds from miRBase.org...')
             # Grab down the latest miRNA data from mirbase.org:
             #  ftp://mirbase.org/pub/mirbase/CURRENT/mature.fa.gz
             from ftplib import FTP
@@ -340,9 +342,9 @@ class miRvestigator:
             ftp1.retrbinary('RETR mature.fa.gz', outFile.write)
             outFile.close()
             ftp1.quit()
-            print 'Done.\n'
+            print('Done.\n')
         else:
-            print '\nUsing already downloaded miRNA seeds.\n'
+            print('\nUsing already downloaded miRNA seeds.\n')
 
         # Read in miRNAs: miRNAs are labeled by the hsa-* names and grabbing 2-8bp
         ### Could merge these as they come in so that don't do redundant, and also so that the labels are together
@@ -379,7 +381,6 @@ class miRvestigator:
         tmp = {}
         for miRNA in miRNAs:
             tmp[miRNA] = miRNAs[miRNA][start:stop]
-            #print tmp[miRNA]
         return tmp
 
     # Complement
@@ -457,7 +458,6 @@ class miRvestigator:
             # Don't need to remember the old paths
             path = newpath
 
-        #print_dptable(V)
         (prob, state) = max([(V[len(obs) - 1][y], y) for y in states])
         return (prob, path[state])
 
@@ -587,7 +587,6 @@ class miRvestigator:
     # input = [pssm, getConsensus(pssms[pssm]), miRNA, miRNAs[miRNA], forVit], totPs, vitPs (Ps are permuted probabilities)
     # output = [miRNAname,miRNAseed,AlignStart,AlignStop,AlignLength,SeedAlign,Align,MotifAlign,P(Total),P-valueTotal,P(Viterbi),P-valueViterbi]
     def outData(self,outMe,totP,vitP,compModel,fullSeed):
-        #print outMe[4][1]
         output = []
         # miRNA name
         output += [outMe[2],self.reverseComplement(fullSeed)]

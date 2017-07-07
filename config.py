@@ -13,7 +13,6 @@ class SygnalConfig:
         self.tmpdir = os.path.abspath(config['tmpdir'])
 
     def outdir_path(self, path):
-        #print self.outdir, path
         return os.path.join(self.outdir, path)
 
     def tmpdir_path(self, path):
