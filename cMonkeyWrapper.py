@@ -79,7 +79,7 @@ class cMonkeyWrapper:
                 stdout.write('.')
             stdout.flush()
         # Now read in the upstream sequences
-        upstreamSeqsFile = gzip.open(promoterSeq,'rb')
+        upstreamSeqsFile = gzip.open(promoterSeq,'rt')
         upstreamSeqsFile.readline() # Skip header
         self.seqsUpstream = {}
         for line in upstreamSeqsFile.readlines():
@@ -93,7 +93,7 @@ class cMonkeyWrapper:
                         self.seqsUpstream[gene] = splitUp[1].strip('"')
         upstreamSeqsFile.close()
         # Now read in the 3' UTR sequences
-        p3utrSeqsFile = gzip.open(p3utrSeq,'rb')
+        p3utrSeqsFile = gzip.open(p3utrSeq,'rt')
         p3utrSeqsFile.readline() # Skip header
         self.seqs3pUTR = {}
 

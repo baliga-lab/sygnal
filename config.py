@@ -49,7 +49,7 @@ def sygnal_init():
         config['outdir'] = args.out
         config['postprocessing-result-file'] = args.res
         config['tmpdir'] = args.tmp
-	config['cores'] = args.cores
+        config['cores'] = args.cores
         config['cmonkey-rundb'] = args.cm_rundb
 
         if not os.path.exists(config['outdir']):

@@ -48,9 +48,9 @@ class miRvestigator:
         self.miRNAs_8mer = self.trimSeqs(deepcopy(self.miRNAs),0,8)
         p3utrSeqs = 'X'.join(seqs3pUTR)
 
-	if not baseDir=='':
-            dirName = baseDir+'/miRNA'
-	else:
+        if baseDir != '':
+            dirName = baseDir + '/miRNA'
+        else:
             dirName = 'miRNA'
 
         if not os.path.exists(dirName):

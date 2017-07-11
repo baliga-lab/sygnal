@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 suppressMessages(library(WGCNA))
-suppressMessages(library(multicore))
+#suppressMessages(library(multicore))
 suppressMessages(library(getopt))
 suppressMessages(library(parallel))
 suppressMessages(library(impute))

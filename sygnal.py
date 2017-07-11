@@ -93,18 +93,18 @@ def meme(num, seqfile, bgfile, nmotifs, min_motif_width, max_motif_width, revcom
     global g_cluster_meme_runs
 
     # Arguments for meme
-    args = '%s -bfile %s -nostatus -text -time 600 -dna -maxsize 9999999 -evt 1e9 -mod zoops -minw %d -maxw %d -nmotifs %d' % (seqfile, bgfile, min_motif_width, max_motif_width, nmotifs)
+    args = ['meme', seqfile, '-bfile', bgfile, '-nostatus', '-text', '-time', '600', '-dna',
+            '-maxsize', '9999999', '-evt', '1e9', '-mod', 'zoops',
+            '-minw', str(min_motif_width), '-maxw', str(max_motif_width), '-nmotifs', str(nmotifs)]
 
     if revcomp:
-        args += ' -revcomp'
+        args.append('-revcomp')
 
     if not seed is None:
-        args += ' -cons ' + str(seed)
+        args.extend(['-cons', str(seed)])
 
     print("MEME args: '%s'" % args)
-    meme_proc = Popen("meme %s" % args, shell=True, stdout=PIPE)
-    output = meme_proc.communicate()[0].split('\n')
-
+    output = str(subprocess.check_output(args), 'utf-8').split('\n')
     PSSMs = []
 
     for i in range(len(output)):
@@ -285,13 +285,16 @@ def run_weeder(run_arg):
 
 
 def tomtom(num, dist_meth='ed', q_thresh=1, min_overlap=6):
-    args = '-dist %s -o tmp/tomtom_out -text -thresh %d -min-overlap %d -verbosity 1 tmp/query%d.tomtom tmp/target%d.tomtom' % (dist_meth, q_thresh, min_overlap, num, num)
-    print(args)
+    args = ['tomtom', '-dist', dist_meth, "-o",
+            os.path.join(cfg['tmpdir'], "tomtom_out"), "-text",
+            "-thresh", str(q_thresh), "-min-overlap", str(min_overlap), "-verbosity", "1",
+            os.path.join(cfg['tmpdir'], "query%d.tomtom" % num),
+            os.path.join(cfg['tmpdir'], "target%d.tomtom" % num)]
+    print("TOMTOM: ", args)
 
-    with open(cfg['tmpdir']+'/stderr_%d.out' % num,'w') as errout:
-        tomtom_proc = Popen("tomtom %s" % args, shell=True, stdout=PIPE, stderr=errout)
+    with open(cfg['tmpdir'] + '/stderr_%d.out' % num,'w') as errout:
         with open(cfg['tmpdir']+'/tomtom_out/tomtom%d.out' % num, 'w') as outfile:
-            output = tomtom_proc.communicate()[0]
+            output = str(subprocess.check_output(args), 'utf-8')
             outfile.write(output)
 
 
@@ -462,7 +465,7 @@ def read_synonyms(cfg):
     alternatives."""
     entrez2id = defaultdict(list)
 
-    with gzip.open(cfg['synonyms-file'], 'r') as infile:
+    with gzip.open(cfg['synonyms-file'], 'rt') as infile:
         for line in infile:
             row = line.strip().split(',')
             id = row[0]
@@ -892,7 +895,7 @@ def post_process(arg):
         genes = bicluster.genes
 
         # Get first principal component variance explained
-        key0 = RATIOS.keys()[0]
+        key0 = list(RATIOS.keys())[0]
         gene0_conditions = set(RATIOS[key0].keys())
         dtd_conditions = set(phenotypes['survival'].keys())
         g0_dtd_conds = gene0_conditions.intersection(dtd_conditions)
@@ -1120,11 +1123,6 @@ def __expand_tf_factor_list(entrez2id):
         inFile.readline() # Get rid of header
         for line in inFile:
             splitUp = line.strip().split(',')
-            """
-            if splitUp[2] in entrez2id:
-                for i in entrez2id[splitUp[2]]:
-                    tfName2entrezId[splitUp[0]] = i
-            """
             tfName2entrezId[splitUp[0]] = splitUp[2]
 
     # Read in tfFamilies.csv for expanded list of possible TFs
@@ -1133,12 +1131,6 @@ def __expand_tf_factor_list(entrez2id):
         inFile.readline() # Get rid of header
         for line in inFile:
             splitUp = line.strip().split(',')
-            """
-            tmp = []
-            for i in splitUp[2].split(' '):
-                if i in entrez2id:
-                    tmp += entrez2id[i]
-            """
             tmp = splitUp[2].split(' ')
             tfFamilies[splitUp[0]] = tmp
 
@@ -1283,7 +1275,7 @@ def __get_permuted_pvalues_for_upstream_meme_motifs(cfg, c1):
     if not os.path.exists(output_path):
         outFile = open(output_path, 'w')
         outFile.write('Motif Name,Region,Original E-Value,Consensus,Permuted E-Value < 10,Similar,Total Permutations,Permuted P-Value')
-        pssmsNames = pssms.keys()
+        pssmsNames = list(pssms.keys())
         print(pssmsNames)
         print('Loading precached random PSSMs...')
         randPssmsDict = {}
@@ -1364,7 +1356,7 @@ def __run_mirvestigator_3putr(cfg, c1):
         pssms = c1.pssms_3putr()
         seqs3pUTR = c1.seqs3pUTR.values()
 
-        m2m = miRvestigator(pssms.values(),
+        m2m = miRvestigator(list(pssms.values()),
                             seqs3pUTR,
                             seedModel=cfg['mirvestigator']['seedModel'],
                             minor=bool(cfg['mirvestigator']['minor']),
