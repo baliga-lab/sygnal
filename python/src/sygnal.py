@@ -107,7 +107,11 @@ def meme(num, seqfile, bgfile, nmotifs, min_motif_width, max_motif_width, revcom
         args.extend(['-cons', str(seed)])
 
     print("MEME args: '%s'" % args)
-    output = str(subprocess.check_output(args), 'utf-8').split('\n')
+    try:
+        output = str(subprocess.check_output(args), 'utf-8').split('\n')
+    except:
+        # Python 2
+        output = subprocess.check_output(args).split('\n')
     PSSMs = []
 
     for i in range(len(output)):
@@ -297,7 +301,12 @@ def tomtom(num, dist_meth='ed', q_thresh=1, min_overlap=6):
 
     with open(cfg['tmpdir'] + '/stderr_%d.out' % num,'w') as errout:
         with open(cfg['tmpdir']+'/tomtom_out/tomtom%d.out' % num, 'w') as outfile:
-            output = str(subprocess.check_output(args), 'utf-8')
+            try:
+                output = str(subprocess.check_output(args), 'utf-8')
+            except:
+                # Python 2
+                output = subprocess.check_output(args)
+
             outfile.write(output)
 
 
