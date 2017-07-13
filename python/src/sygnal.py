@@ -55,6 +55,9 @@ import json
 # directory. This avoids having to reference them with "./<script>
 # which would only work if we are directly in that directory
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+HOME_DIR = os.path.dirname(os.path.dirname(THIS_DIR))
+R_DIR = os.path.join(HOME_DIR, 'R')
+NEO_DIR = os.path.join(HOME_DIR, 'NEO')
 
 #################################################################
 ## rpy2 integration                                            ##
@@ -952,7 +955,7 @@ def dump_cluster_members(cfg, c1):
 def __get_cluster_eigengenes(cfg, c1):
     # Calculate bicluster eigengene (first principal components)
     print("Compute bicluster eigengenes")
-    app_path = os.path.join(THIS_DIR, 'getEigengene.R')
+    app_path = os.path.join(R_DIR, 'getEigengene.R')
     cluster_eigengenes_path = cfg.outdir_path('biclusterEigengenes.csv')
     if not os.path.exists(cluster_eigengenes_path):
         ret = subprocess.check_call([app_path,
@@ -1506,7 +1509,7 @@ def __make_permuted_pvalues(cfg, c1):
     pvalues_path = cfg.outdir_path('residualPermutedPvalues_permAll.csv')
     if not os.path.exists(pvalues_path):
         print('Calculating FPC permuted p-values...')
-        app_path = os.path.join(THIS_DIR, 'permutedResidualPvalues_permAll_mc.R')
+        app_path = os.path.join(R_DIR, 'permutedResidualPvalues_permAll_mc.R')
         ret = subprocess.check_call([app_path,
                                      '-o', cfg['outdir'],
                                      '-r', cfg['ratios-file'],
@@ -1539,7 +1542,7 @@ def __make_functional_enrichment(cfg, c1):
     # Note that these are external to the project and have hard-coded paths !!!
     if not os.path.exists(cfg.outdir_path('biclusterEnrichment_GOBP.csv')):
         print('Run functional enrichment...')
-        app_path = os.path.join(THIS_DIR, 'enrichment.R')
+        app_path = os.path.join(R_DIR, 'enrichment.R')
         app_args = [app_path, '-o', cfg['outdir'], '-l', cfg['enrichment-library']]
         ret = subprocess.check_call(app_args, stderr=subprocess.STDOUT)
         if ret == 1:
@@ -1567,7 +1570,7 @@ def __make_go_term_semantic_similarity(cfg, c1):
     #################################################################
     if not os.path.exists(cfg.outdir_path('jiangConrath_hallmarks.csv')):
         print('Run semantic similarity...')
-        app_path = os.path.join(THIS_DIR, 'goSimHallmarksOfCancer.R')
+        app_path = os.path.join(R_DIR, 'goSimHallmarksOfCancer.R')
         ret = subprocess.check_call("%s -o %s" % (app_path, cfg.outdir),
                                     stderr=subprocess.STDOUT, shell=True)
         if ret == 1:
@@ -1647,7 +1650,7 @@ def run_neo(cfg):
     if not os.path.exists(neo_output_dir):
         ## Run the runNEO.R script and do the causality analyses
         print('  Network edge orienting (NEO)...')
-        app_path = os.path.join(THIS_DIR, 'NEO/runNEO_V2.R')
+        app_path = os.path.join(NEO_DIR, 'runNEO_V2.R')
         csv_file = os.path.join(cfg['outdir'], 'biclusterEigengenes.csv')
         app_call = [app_path, '-o', cfg['outdir'], '-r', cfg['all-ratios-file'],
                     '-m', cfg['mirna-file'], '-s', cfg['som-muts-file'], '-t', project_name,
