@@ -11,3 +11,5 @@ replication_*
 randPSSMs
 extras
 clpMerge_21nov.csv
+.coverage
+test-reports
