@@ -440,23 +440,20 @@ def compareMiRNANames(a, b):
     Input: Two miRNA names to be compared.
     Returns:
     """
-    if a==b:
-        return 1
-    if len(a)<len(b):
-        if a[-3:]=='-3p':
-            re1 = re.compile(a+'[a-oq-z]?(-\d)?-3p$')
+    if a == b:
+        return True
+    if len(a) < len(b):
+        if a[-3:] == '-3p':
+            re1 = re.compile(a + '[a-oq-z]?(-\d)?-3p$')
         else:
-            re1 = re.compile(a+'[a-oq-z]?(-\d)?(-5p)?$')
-        if re1.match(b):
-            return 1
+            re1 = re.compile(a + '[a-oq-z]?(-\d)?(-5p)?$')
+        return re1.match(b) is not None
     else:
-        if b[-3:]=='-3p':
-            re1 = re.compile(b+'[a-oq-z]?(-\d)?-3p$')
+        if b[-3:] == '-3p':
+            re1 = re.compile(b + '[a-oq-z]?(-\d)?-3p$')
         else:
-            re1 = re.compile(b+'[a-oq-z]?(-\d)?(-5p)?$')
-        if re1.match(a):
-            return 1
-    return 0
+            re1 = re.compile(b + '[a-oq-z]?(-\d)?(-5p)?$')
+        return re1.match(a) is not None
 
 
 def is_number(s):
