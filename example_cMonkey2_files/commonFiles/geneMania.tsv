@@ -1,6 +1,0 @@
-protein1	protein2	combined_score
-Gene_1	Gene_2	5E-5
-Gene_1	Gene_3	6E-5
-Gene_2	Gene_3	1.5E-4
-...
-Gene_N-1	Gene_N	5.5E-4

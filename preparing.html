@@ -1,0 +1,275 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Preparing for SYGNAL run &#8212; sygnal 1.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Installation" href="installation.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="preparing-for-sygnal-run">
+<h1>Preparing for SYGNAL run<a class="headerlink" href="#preparing-for-sygnal-run" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview-of-sygnal-method">
+<h2>Overview of SYGNAL method<a class="headerlink" href="#overview-of-sygnal-method" title="Permalink to this headline">¶</a></h2>
+<p>The SYGNAL pipeline is designed to be cloned into a completed cMonkey<sub>2</sub> run directory. It will then run the SYGNAL pipeline using the cMonkey<sub>2</sub> result database and put all the results into an output directory. SYGNAL performs all the post-hoc analysis of the cMonkey<sub>2</sub> biclusters that is required for subsequent regulatory network construction.</p>
+<p>SYGNAL is designed for use on mammalian species and the cMonkey<sub>2</sub> runs have been tailored to use the more computationally efficient set-enrichment methods for bicluster training on TF and miRNA regulatory inputs. This is used in place of the MEME or WEEDER based promoter or 3’ UTR sequence searching which very computationally expensive if done iteratively. The SYGNAL pipeline was developed to streamline post-hoc running of these methods. The primary input for the SYGNAL pipeline is the results from a cMonkey<sub>2</sub> run which is comprised of a set of biclusters typically stored as a SQLite database (<a class="reference external" href="https://github.com/baliga-lab/cmonkey2/wiki/Database-schema">https://github.com/baliga-lab/cmonkey2/wiki/Database-schema</a>). SYGNAL then conducts the following analyses:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>Retrieve cMonkey<sub>2</sub> biclusters from database</li>
+<li>Discover putative TF and miRNA regulators</li>
+<li>Determine significance of bicluster co-expression</li>
+<li>Statistical tests comparing study phenotypes versus bicluster eigengene (e.g. survival analysis, T-test, or correlation)</li>
+<li>Replicate in addition studies if provided</li>
+<li>Functional enrichment of GO biological processes</li>
+<li>Semantic similarity of enriched GO biological processes to hallmarks of disease</li>
+<li>Causal analysis linking mutations to regulator to bicluster eigengene</li>
+</ol>
+</div></blockquote>
+<p>Currently the SYGNAL pipeline requires some code manipulation to turn each of these analyses on or off. We are working towards making each of these optional and will allow users to turn them on or off through the configuration file. The causality analysis is a working example of this proposed functionality as it can be turned on or off through a flag in the <code class="docutils literal"><span class="pre">sygnal_config.json</span></code> configuration file.</p>
+</div>
+<div class="section" id="directory-structure-for-running-cmonkey2-and-sygnal">
+<h2>Directory structure for running cMonkey2 and SYGNAL<a class="headerlink" href="#directory-structure-for-running-cmonkey2-and-sygnal" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none"><div class="highlight"><pre><span></span>+-- cMonkey2
+|  +-- (clone of https://github.com/baliga-lab/cmonkey2.git)
++-- commonFiles
+|  +-- (common files such as synonymThesaurus.csv)
++-- config_pita.ini (configuration file for PITA trained run of cMonkey2)
++-- config_targetscan.ini (configuration file for TargetScan trained run of cMonkey2)
++-- config_tfbs_db.ini (configuration file for TFBS_DB trained run of cMonkey2)
++-- exprs
+|  +-- (user defined expression matrix formatted and standardized for cMonkey2, typically filtered to less than 8,000 genes).tsv
++-- exprsAll
+|  +-- (all genes expression matrix not standardized).csv
++-- miRNA_seq
+|  +-- (all miRNAs expression matrix not standardized).csv
++-- pipeline.json (scoring configuration file for cMonkey2)
++-- runs
+|  +-- run.pita
+|  |  +-- (link all cMonkey2 files here using &#39;ln -s ../../cMonkey2/* .&#39;)
+|  |  +-- cache
+|  |  +-- out
+|  |  |  +-- cmonkey_run.db (cMonkey2 SQLite database file used as input for SYGNAL)
+|  |  |  +-- (etc.)
+|  |  +-- start_cmonkey.sh (script to start cMonkey run)
+|  |  +-- sygnal
+|  |  |  +-- (link all sygnal files here using &#39;ln -s ../../../sygnal/* .&#39;)
+|  |  |  +-- output (directory holding output for SYGNAL)
+|  |  |  |  +-- biclusterEigengenes.csv (matrix of bicluster eigenegenes from WGCNA)
+|  |  |  |  +-- biclusterEnrichment_GOBP.csv (GO biological process enrichments per bicluster)
+|  |  |  |  +-- biclusterFirstPrincComponents.csv (matrix of bicluster first principal components)
+|  |  |  |  +-- biclusterVarianceExplained.csv (variance explained by first principal component for each bicluster)
+|  |  |  |  +-- c1_all.pkl (2nd SYGNAL checkpoint)
+|  |  |  |  +-- c1.pkl (initial SYGNAL checkpoint)
+|  |  |  |  +-- c1_postInterim.pkl (3rd SYGNAL checkpoint)
+|  |  |  |  +-- c1_postProc.pkl (final SYGNAL checkpoint)
+|  |  |  |  +-- causal (directory holding causality analyses)
+|  |  |  |  +-- causalitySummary.csv (summary of causality analyses)
+|  |  |  |  +-- cluster.members.conditions.txt (list of bicluster condition membership)
+|  |  |  |  +-- cluster.members.genes.txt (list of bicluster gene membership)
+|  |  |  |  +-- jiangConrath_hallmarks.csv (semantic similarity for each hallmark of disease)
+|  |  |  |  +-- m2m.pkl (miRvestigator checkpoint)
+|  |  |  |  +-- meme_upstream.pkl (checkpoint for MEME promoter motif discovery)
+|  |  |  |  +-- miRNA (directory for miRNA pre-computed files)
+|  |  |  |  +-- miRvestigatorResults.pkl (results from miRvestigator runs)
+|  |  |  |  +-- pita_3pUTR.pkl (enrichment results from PITA analyses)
+|  |  |  |  +-- postProcessed_meso_pita.csv (final result file)
+|  |  |  |  +-- postProcessed.pkl (checkpoint for phenotype analysis)
+|  |  |  |  +-- replicationPvalues_mesoTCGA.csv (results form replication study)
+|  |  |  |  +-- residualPermutedPvalues_permAll.csv (permuted p-values for co-expression significance)
+|  |  |  |  +-- targetscan_3pUTR.pkl (enrichment results from TargetScan analyses)
+|  |  |  |  +-- tfbs_db.pkl (enrichment results from TFBS_DB analyses)
+|  |  |  |  +-- upstreamComparison_jaspar_transfac.csv (results of comparing motifs versus motif databases)
+|  |  |  |  +-- upstreamJasparTransfacComparison.pkl (checkpoint of comparing motifs versus motif databases)
+|  |  |  |  +-- upstreamMotifPermutedPValues.csv (significance of discovered promoter motifs)
+|  |  |  |  +-- weeder_3pUTR.pkl (checkpoint for WEEDER 3&#39; UTR motif discovery)
+|  |  |  |  +-- weeder_upstream.pkl (checkpoint for WEEDER promoter motif discovery)
+|  |  |  +-- start_sygnal.sh (script to start SYGNAL run)
+|  |  |  +-- tmp (directory to store temporary files)
+|  +-- run.targetscan
+|  |  +-- (repeat of run.pita with paths modified to feed off of run.targetscan)
+|  +-- run.tfbs_db
+|  |  +-- (repeat of run.pita with paths modified to feed off of run.tfbs_db)
++-- somMuts
+|  +-- (mutations matrix with values as [0,1]).csv
++-- sygnal
+|  +-- (clone of https://github.com/cplaisier/sygnal.git)
+</pre></div>
+</div>
+</div>
+<div class="section" id="running-cmonkey2">
+<h2>Running cMonkey<sub>2</sub><a class="headerlink" href="#running-cmonkey2" title="Permalink to this headline">¶</a></h2>
+<p>The training configuration for cMonkey<sub>2</sub> should include co-expression, GeneMania gene-gene interaction network (<a class="reference external" href="http://genemania.org/data/current/">http://genemania.org/data/current/</a>), and enrichment of either TF or miRNA target genes using the set-enrichment module (Reiss et al., 2015). cMonkey<sub>2</sub> should be run three times. The first run used the TF-target gene interaction database as input to the set-enrichment module to discover TF mediated regulation. The second and third runs used PITA (Kertesz et al., 2007) and TargetScan (Friedman et al., 2009) as input to the set-enrichment module to discover miRNA mediated regulation.</p>
+</div>
+<div class="section" id="start-cmonkey-sh">
+<h2><code class="docutils literal"><span class="pre">start_cMonkey.sh</span></code><a class="headerlink" href="#start-cmonkey-sh" title="Permalink to this headline">¶</a></h2>
+<p>(with cmonkey<sub>2</sub> installed through its pip package on pypi.org)</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>cmonkey2 --organism hsa --pipeline ../../pipeline.json --config ../../config_pita.ini --rsat_organism Homo_sapiens --rsat_dir ../../commonFiles/data/Homo_sapiens --string ../../commonFiles/data/STRING/string_conv.tsv --synonym_file ../../commonFiles/synonymsThesaurus.csv --verbose --case_sensitive --numclusters 534 ../../exprs/mesothelioma_norm_cv_z.tsv
+</pre></div>
+</div>
+</div>
+<div class="section" id="pipeline-json">
+<h2><code class="docutils literal"><span class="pre">pipeline.json</span></code><a class="headerlink" href="#pipeline-json" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-javascript"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;row-scoring&quot;</span><span class="o">:</span> <span class="p">{</span>
+     <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="s2">&quot;combiner&quot;</span><span class="p">,</span>
+     <span class="s2">&quot;function&quot;</span><span class="o">:</span> <span class="p">{</span> <span class="s2">&quot;module&quot;</span><span class="o">:</span> <span class="s2">&quot;cmonkey.scoring&quot;</span><span class="p">,</span> <span class="s2">&quot;class&quot;</span><span class="o">:</span> <span class="s2">&quot;ScoringFunctionCombiner&quot;</span> <span class="p">},</span>
+     <span class="s2">&quot;args&quot;</span><span class="o">:</span> <span class="p">{</span>
+       <span class="s2">&quot;functions&quot;</span><span class="o">:</span> <span class="p">[</span>
+         <span class="p">{</span> <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="s2">&quot;Rows&quot;</span><span class="p">,</span>
+           <span class="s2">&quot;function&quot;</span><span class="o">:</span> <span class="p">{</span> <span class="s2">&quot;module&quot;</span><span class="o">:</span> <span class="s2">&quot;cmonkey.microarray&quot;</span><span class="p">,</span> <span class="s2">&quot;class&quot;</span><span class="o">:</span> <span class="s2">&quot;RowScoringFunction&quot;</span> <span class="p">}</span>
+         <span class="p">},</span>
+         <span class="p">{</span> <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="s2">&quot;Networks&quot;</span><span class="p">,</span>
+           <span class="s2">&quot;function&quot;</span><span class="o">:</span> <span class="p">{</span> <span class="s2">&quot;module&quot;</span><span class="o">:</span> <span class="s2">&quot;cmonkey.network&quot;</span><span class="p">,</span> <span class="s2">&quot;class&quot;</span><span class="o">:</span> <span class="s2">&quot;ScoringFunction&quot;</span> <span class="p">}</span>
+         <span class="p">},</span>
+         <span class="p">{</span> <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="s2">&quot;SetEnrichment&quot;</span><span class="p">,</span>
+           <span class="s2">&quot;function&quot;</span><span class="o">:</span> <span class="p">{</span> <span class="s2">&quot;module&quot;</span><span class="o">:</span> <span class="s2">&quot;cmonkey.set_enrichment&quot;</span><span class="p">,</span> <span class="s2">&quot;class&quot;</span><span class="o">:</span> <span class="s2">&quot;ScoringFunction&quot;</span> <span class="p">}</span>
+         <span class="p">}</span>
+       <span class="p">]</span>
+     <span class="p">}</span>
+   <span class="p">},</span>
+   <span class="s2">&quot;column-scoring&quot;</span><span class="o">:</span> <span class="p">{</span> <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="s2">&quot;Columns&quot;</span><span class="p">,</span>
+                       <span class="s2">&quot;function&quot;</span><span class="o">:</span> <span class="p">{</span> <span class="s2">&quot;module&quot;</span><span class="o">:</span> <span class="s2">&quot;cmonkey.scoring&quot;</span><span class="p">,</span>
+                                     <span class="s2">&quot;class&quot;</span><span class="o">:</span> <span class="s2">&quot;ColumnScoringFunction&quot;</span><span class="p">}</span> <span class="p">}</span>
+ <span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="pita-config-json">
+<h2><code class="docutils literal"><span class="pre">pita_config.json</span></code><a class="headerlink" href="#pita-config-json" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none"><div class="highlight"><pre><span></span>[General]
+normalize_ratios = True
+num_iterations = 2000
+
+[SetEnrichment]
+schedule = 1,7
+scaling_rvec=seq(1e-5, 0.5, length=num_iterations/2)
+map_to_ratio_genes = True
+set_types = pita
+
+[SetEnrichment-pita]
+set_file = ../../commonFiles/pita_miRNA_sets_entrez_hsa.json
+weight = 1.0
+</pre></div>
+</div>
+</div>
+<div class="section" id="overlaying-sygnal-on-alternative-clustering-methods">
+<h2>Overlaying SYGNAL on alternative clustering methods<a class="headerlink" href="#overlaying-sygnal-on-alternative-clustering-methods" title="Permalink to this headline">¶</a></h2>
+<p>It is possible to modify SYGNAL to sit on top of other clustering methods. The focus of such efforts should be to modify the <a class="reference external" href="https://github.com/cplaisier/sygnal/blob/master/cMonkeyWrapper.py">cMonkeyWrapper.py</a> such that it pulls the information from the new source of cluster information.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">sygnal</a></h1>
+
+
+
+<p class="blurb">SYstems Genetic Network AnaLysis Pipeline</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=baliga-lab&repo=sygnal&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Preparing for SYGNAL run</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview-of-sygnal-method">Overview of SYGNAL method</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#directory-structure-for-running-cmonkey2-and-sygnal">Directory structure for running cMonkey2 and SYGNAL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-cmonkey2">Running cMonkey<sub>2</sub></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#start-cmonkey-sh"><code class="docutils literal"><span class="pre">start_cMonkey.sh</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pipeline-json"><code class="docutils literal"><span class="pre">pipeline.json</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pita-config-json"><code class="docutils literal"><span class="pre">pita_config.json</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#overlaying-sygnal-on-alternative-clustering-methods">Overlaying SYGNAL on alternative clustering methods</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="installation.html" title="previous chapter">Installation</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Baliga Lab, Institute for Systems Biology.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/preparing.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/baliga-lab/sygnal" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

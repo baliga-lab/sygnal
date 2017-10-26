@@ -1,0 +1,182 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Installation &#8212; sygnal 1.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Preparing for SYGNAL run" href="preparing.html" />
+    <link rel="prev" title="Welcome to SYstems Genetic Network AnaLysis Pipeline (SYGNAL)" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="cmonkey2">
+<h2>cMonkey<sub>2</sub><a class="headerlink" href="#cmonkey2" title="Permalink to this headline">¶</a></h2>
+<p>SYGNAL is designed to be used a follow up to a cMonkey<sub>2</sub> analysis for discovery of co-regulated biclusters (<a class="reference external" href="https://github.com/baliga-lab/cmonkey2">https://github.com/baliga-lab/cmonkey2</a>). More information about cMonkey<sub>2</sub> can be found in the publication (<a class="reference external" href="https://www.ncbi.nlm.nih.gov/pubmed/25873626">https://www.ncbi.nlm.nih.gov/pubmed/25873626</a>) and through the cMonkey<sub>2</sub> Wiki (<a class="reference external" href="https://github.com/baliga-lab/cmonkey2/wiki">https://github.com/baliga-lab/cmonkey2/wiki</a>).</p>
+</div>
+<div class="section" id="sygnal-dependencies">
+<h2>SYGNAL dependencies<a class="headerlink" href="#sygnal-dependencies" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="python">
+<h3>Python<a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h3>
+<p>SYGNAL uses the multiprocessing capability of Python to speed up all the different computations required, and as such makes use of the <code class="docutils literal"><span class="pre">multiprocessing</span></code> module which is available in Python 2.7 and greater (<a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a>). SYGNAL has been developed and tested to work with Python 2.7.x and Python 3.x.</p>
+</div>
+<div class="section" id="r">
+<h3>R<a class="headerlink" href="#r" title="Permalink to this headline">¶</a></h3>
+<p>In addition SYGNAL requires the installation of <code class="docutils literal"><span class="pre">rpy2</span></code> which can be found at (<a class="reference external" href="http://rpy2.bitbucket.org/">http://rpy2.bitbucket.org/</a>). Each version of <code class="docutils literal"><span class="pre">rpy2</span></code> requires the installation of a specific version of the statistical package R. Please install the corresponding version of R (<a class="reference external" href="https://cran.r-project.org/">https://cran.r-project.org/</a>).</p>
+<p>Here are easy commands to install R and <code class="docutils literal"><span class="pre">rpy</span></code> on Ubuntu:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>sudo apt-get install r-base r-base-dev
+sudo pip install rpy
+</pre></div>
+</div>
+</div>
+<div class="section" id="r-packages">
+<h3>R packages<a class="headerlink" href="#r-packages" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">WGCNA</span></code></li>
+<li><code class="docutils literal"><span class="pre">impute</span></code></li>
+<li><code class="docutils literal"><span class="pre">getopt</span></code></li>
+<li><code class="docutils literal"><span class="pre">topGO</span></code></li>
+<li><code class="docutils literal"><span class="pre">org.Hs.eg.db</span></code> or <code class="docutils literal"><span class="pre">org.Mm.eg.db</span></code> depending on species</li>
+<li><code class="docutils literal"><span class="pre">GOSim</span></code></li>
+</ul>
+</div></blockquote>
+<p>Make sure to set your repositories to include the Bioconductor repositories with setRepositories() and install the apporiate packages through the commands below (you will also have to select the closest mirror as well):</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>setRepositories()
+install.packages(c(&#39;WGCNA&#39;,&#39;impute&#39;,&#39;getopt&#39;,&#39;topGO&#39;,&#39;org.Mm.eg.db&#39;,&#39;org.Hs.eg.db&#39;,&#39;GOSim&#39;))
+</pre></div>
+</div>
+<p>A host of other dependencies for installation of each package should be installed through this command. If there are failures in the installation of these packages please try to install each dependency separately, and contact the authors of these packages if problems persist.</p>
+<p>In order to run the causality analysis portions of SYGNAL requires the use of the Network Edge Orienting (<code class="docutils literal"><span class="pre">NEO</span></code>) package   (<a class="reference external" href="https://labs.genetics.ucla.edu/horvath/aten/NEO/">https://labs.genetics.ucla.edu/horvath/aten/NEO/</a>).  The <code class="docutils literal"><span class="pre">neoDecember2015.txt</span></code> is the source code needed for running <code class="docutils literal"><span class="pre">NEO</span></code> in SYGNAL.</p>
+</div>
+<div class="section" id="stand-alone-applications">
+<h3>Stand alone applications<a class="headerlink" href="#stand-alone-applications" title="Permalink to this headline">¶</a></h3>
+<p>SYGNAL relies upon several sequence searching based algorithms <code class="docutils literal"><span class="pre">MEME</span></code>, <code class="docutils literal"><span class="pre">WEEDER</span></code> and <code class="docutils literal"><span class="pre">AME</span></code>. They will have to installed according to their documentation. Please find them at the following links:</p>
+<blockquote>
+<div><ul class="simple">
+<li>MEME (<a class="reference external" href="http://meme-suite.org/doc/download.html?man_type=web">http://meme-suite.org/doc/download.html?man_type=web</a>)</li>
+<li>WEEDER (<a class="reference external" href="https://github.com/baliga-lab/weeder_patched">https://github.com/baliga-lab/weeder_patched</a>)</li>
+<li>AME (<a class="reference external" href="http://bioinformatics.org.au/tools/ame/">http://bioinformatics.org.au/tools/ame/</a>)</li>
+</ul>
+</div></blockquote>
+</div>
+</div>
+<div class="section" id="installing-sygnal">
+<h2>Installing SYGNAL<a class="headerlink" href="#installing-sygnal" title="Permalink to this headline">¶</a></h2>
+<p>As SYGNAL is a Python program it simply requires the downloading  the code from the github repository (<a class="reference external" href="https://github.com/baliga-lab/sygnal/archive/master.zip">https://github.com/baliga-lab/sygnal/archive/master.zip</a>) into the directory you wish to run SYGNAL. As long as the dependencies are met then it should be possible to run SYGNAL. We have developed a best practices directory structure for using SYGNAL. Please refer to the section
+<a class="reference internal" href="preparing.html"><span class="doc">Preparing for SYGNAL run</span></a>.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">sygnal</a></h1>
+
+
+
+<p class="blurb">SYstems Genetic Network AnaLysis Pipeline</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=baliga-lab&repo=sygnal&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#cmonkey2">cMonkey<sub>2</sub></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sygnal-dependencies">SYGNAL dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installing-sygnal">Installing SYGNAL</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="preparing.html">Preparing for SYGNAL run</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to SYstems Genetic Network AnaLysis Pipeline (SYGNAL)</a></li>
+      <li>Next: <a href="preparing.html" title="next chapter">Preparing for SYGNAL run</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Baliga Lab, Institute for Systems Biology.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/installation.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/baliga-lab/sygnal" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

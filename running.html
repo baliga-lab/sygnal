@@ -1,0 +1,374 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Running SYGNAL &#8212; sygnal 1.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Preparing for SYGNAL run" href="preparing.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="running-sygnal">
+<h1>Running SYGNAL<a class="headerlink" href="#running-sygnal" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="command-line-parameters">
+<h2>Command line parameters<a class="headerlink" href="#command-line-parameters" title="Permalink to this headline">¶</a></h2>
+<p>SYGNAL is written in python and takes command line parameters to adjust run behavior:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>usage: sygnal.py [-h] [--config CONFIG] [--out OUT] [--res RES]
+              [--cores CORES] [--tmp TMP]
+              cm_rundb
+</pre></div>
+</div>
+<p><strong>–config</strong> = SYGNAL configuration file formatted as JSON</p>
+<p><strong>–res</strong> = overall result file name</p>
+<p><strong>–out</strong> = output directory</p>
+<p><strong>–tmp</strong> = temporary file storage directory</p>
+<p><strong>–cores</strong> = number of cores to be used for</p>
+<p><strong>cm_rundb</strong> = cMonkey run output SQLite database</p>
+<p>Here is an example run training on PITA miRNA-target gene database that follows the directory structure described <a class="reference external" href="https://github.com/cplaisier/sygnal/wiki/Preparing-for-SYGNAL-run#directory-structure-for-running-cmonkey2-and-sygnal">previously</a>:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>python sygnal.py --config sygnal_config.json --res postProcessed_example_pita.csv --out output --tmp tmp --cores 19 ../out/cmonkey_run.db
+</pre></div>
+</div>
+</div>
+<div class="section" id="input-files">
+<h2>Input files<a class="headerlink" href="#input-files" title="Permalink to this headline">¶</a></h2>
+<p>The SYGNAL pipeline requires user supplied data to run. This information is used to configure the run.</p>
+<div class="section" id="sygnal-config-json">
+<h3><code class="docutils literal"><span class="pre">sygnal_config.json</span></code><a class="headerlink" href="#sygnal-config-json" title="Permalink to this headline">¶</a></h3>
+<p>Example <code class="docutils literal"><span class="pre">sygnal_config.json</span></code>:</p>
+<div class="highlight-javascript"><div class="highlight"><pre><span></span><span class="p">{</span>
+   <span class="s2">&quot;max-evalue&quot;</span><span class="o">:</span> <span class="mf">10.0</span><span class="p">,</span>
+   <span class="s2">&quot;rho-cut&quot;</span><span class="o">:</span> <span class="mf">0.3</span><span class="p">,</span>
+   <span class="s2">&quot;pvalue-cut&quot;</span><span class="o">:</span> <span class="mf">0.05</span><span class="p">,</span>
+   <span class="s2">&quot;perc-targets&quot;</span><span class="o">:</span> <span class="mf">0.1</span><span class="p">,</span>
+   <span class="s2">&quot;leo-nb-atob&quot;</span><span class="o">:</span> <span class="mf">0.5</span><span class="p">,</span>
+   <span class="s2">&quot;mlogp-m-atob&quot;</span><span class="o">:</span> <span class="mf">0.05</span><span class="p">,</span>
+
+   <span class="s2">&quot;run-neo&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+
+   <span class="s2">&quot;synonyms-file&quot;</span><span class="o">:</span> <span class="s2">&quot;../../../commonFiles/synonymsThesaurus.csv.gz&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;phenotypes-file&quot;</span><span class="o">:</span> <span class="s2">&quot;../../../commonFiles/phenotypes_meso.csv&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;ratios-file&quot;</span><span class="o">:</span> <span class="s2">&quot;../../../exprs/&lt;example_cMonkey2_standardized_expression_data&gt;.tsv&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;all-ratios-file&quot;</span><span class="o">:</span> <span class="s2">&quot;../../../exprs_all/&lt;example_all_expression_data&gt;.csv&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;som-muts-file&quot;</span><span class="o">:</span> <span class="s2">&quot;../../../som_muts/&lt;somatic_mutations_matrix.csv&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;mirna-fasta-file&quot;</span><span class="o">:</span> <span class="s2">&quot;miRNA/hsa.mature.fa&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;rand_pssms_dir&quot;</span><span class="o">:</span> <span class="s2">&quot;randPSSMs&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;promoterSeq&quot;</span><span class="o">:</span> <span class="s2">&quot;seqs/promoterSeqs_Homo_sapiens.csv.gz&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;p3utrSeq&quot;</span><span class="o">:</span> <span class="s2">&quot;seqs/p3utrSeqs_Homo_sapiens.csv.gz&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;gene_conv&quot;</span><span class="o">:</span> <span class="s2">&quot;extras/entrez2ucsc.csv&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;replication-dataset-names&quot;</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;&lt;exampleReplication&gt;&quot;</span><span class="p">],</span>
+
+   <span class="s2">&quot;pita&quot;</span><span class="o">:</span> <span class="s2">&quot;../../../commonFiles/pita_miRNA_sets_entrez_hsa.json&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;targetscan&quot;</span><span class="o">:</span> <span class="s2">&quot;../../../commonFiles/targetScan_miRNA_sets_entrez_hsa.json&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;tfbsdb&quot;</span><span class="o">:</span> <span class="s2">&quot;../../../commonFiles/tfbsDb_plus_and_minus_5000_entrez.json&quot;</span><span class="p">,</span>
+
+   <span class="s2">&quot;meme&quot;</span><span class="o">:</span> <span class="p">{</span>
+     <span class="s2">&quot;upstream&quot;</span><span class="o">:</span> <span class="p">{</span>
+       <span class="s2">&quot;nmotifs&quot;</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+       <span class="s2">&quot;motif-widths&quot;</span><span class="o">:</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">12</span><span class="p">],</span>
+       <span class="s2">&quot;revcomp&quot;</span><span class="o">:</span> <span class="s2">&quot;True&quot;</span><span class="p">,</span>
+       <span class="s2">&quot;bgfile&quot;</span><span class="o">:</span> <span class="s2">&quot;seqs/bgFile.meme&quot;</span>
+     <span class="p">}</span>
+   <span class="p">},</span>
+   <span class="s2">&quot;weeder&quot;</span><span class="o">:</span> <span class="p">{</span>
+     <span class="s2">&quot;upstream&quot;</span><span class="o">:</span> <span class="p">{</span>
+       <span class="s2">&quot;bgfile&quot;</span><span class="o">:</span> <span class="s2">&quot;HS&quot;</span><span class="p">,</span>
+       <span class="s2">&quot;size&quot;</span><span class="o">:</span> <span class="s2">&quot;small&quot;</span><span class="p">,</span>
+       <span class="s2">&quot;enriched&quot;</span><span class="o">:</span> <span class="s2">&quot;T50&quot;</span><span class="p">,</span>
+       <span class="s2">&quot;revcomp&quot;</span><span class="o">:</span> <span class="s2">&quot;True&quot;</span>
+     <span class="p">},</span>
+     <span class="s2">&quot;3pUTR&quot;</span><span class="o">:</span> <span class="p">{</span>
+       <span class="s2">&quot;bgfile&quot;</span><span class="o">:</span> <span class="s2">&quot;HS3P&quot;</span><span class="p">,</span>
+       <span class="s2">&quot;size&quot;</span><span class="o">:</span> <span class="s2">&quot;small&quot;</span><span class="p">,</span>
+       <span class="s2">&quot;enriched&quot;</span><span class="o">:</span> <span class="s2">&quot;T50&quot;</span><span class="p">,</span>
+       <span class="s2">&quot;revcomp&quot;</span><span class="o">:</span> <span class="s2">&quot;False&quot;</span>
+     <span class="p">}</span>
+   <span class="p">},</span>
+   <span class="s2">&quot;tomtom&quot;</span><span class="o">:</span> <span class="p">{</span>
+     <span class="s2">&quot;upstream&quot;</span><span class="o">:</span> <span class="p">{</span>
+       <span class="s2">&quot;motif-files&quot;</span><span class="o">:</span> <span class="p">[</span>
+       <span class="s2">&quot;../../../commonFiles/jasparCoreVertebrata_redundant.json&quot;</span><span class="p">,</span>
+       <span class="s2">&quot;../../../commonFiles/transfac_2012.1_PSSMs_vertabrate.json&quot;</span><span class="p">,</span>
+       <span class="s2">&quot;../../../commonFiles/uniprobePSSMsNonRedundant.json&quot;</span><span class="p">,</span>
+       <span class="s2">&quot;../../../commonFiles/selexPSSMsNonRedundant.json&quot;</span><span class="p">]</span>
+     <span class="p">}</span>
+   <span class="p">},</span>
+   <span class="s2">&quot;tfExpansion&quot;</span><span class="o">:</span> <span class="p">{</span>
+     <span class="s2">&quot;tfs&quot;</span><span class="o">:</span> <span class="s2">&quot;TF/humanTFs_All.csv&quot;</span><span class="p">,</span>
+     <span class="s2">&quot;tfFamilies&quot;</span><span class="o">:</span> <span class="s2">&quot;TF/tfFamilies.csv&quot;</span>
+   <span class="p">},</span>
+   <span class="s2">&quot;mirvestigator&quot;</span><span class="o">:</span> <span class="p">{</span>
+     <span class="s2">&quot;seedModel&quot;</span><span class="o">:</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">],</span>
+     <span class="s2">&quot;minor&quot;</span><span class="o">:</span> <span class="s2">&quot;True&quot;</span><span class="p">,</span>
+     <span class="s2">&quot;minor&quot;</span><span class="o">:</span> <span class="s2">&quot;True&quot;</span><span class="p">,</span>
+     <span class="s2">&quot;p5&quot;</span><span class="o">:</span> <span class="s2">&quot;True&quot;</span><span class="p">,</span>
+     <span class="s2">&quot;p3&quot;</span><span class="o">:</span> <span class="s2">&quot;True&quot;</span><span class="p">,</span>
+     <span class="s2">&quot;wobble&quot;</span><span class="o">:</span> <span class="s2">&quot;False&quot;</span><span class="p">,</span>
+     <span class="s2">&quot;wobbleCut&quot;</span><span class="o">:</span> <span class="mf">0.25</span><span class="p">,</span>
+     <span class="s2">&quot;species&quot;</span><span class="o">:</span> <span class="s2">&quot;hsa&quot;</span>
+   <span class="p">},</span>
+   <span class="s2">&quot;first-principal-comps-result-file&quot;</span><span class="o">:</span> <span class="s2">&quot;biclusterFirstPrincComponents.csv&quot;</span>
+ <span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="cmonkey2-output-database">
+<h2>cMonkey<sub>2</sub> output database<a class="headerlink" href="#cmonkey2-output-database" title="Permalink to this headline">¶</a></h2>
+<p>cmonkey-python writes the results of its computation to an SQLite database. This choice was made, because SQLite is a free, open source and portable data store which is available on many systems and has programming interfaces to a large number of programming languages. Another important aspect is that the entire database is stored in a single file, which can be easily copied, archived and analyzed. The database structure and its function is explained in further detail in the <cite>cMonkey:sub:`2</cite> Wiki &lt;<a class="reference external" href="https://github.com/baliga-lab/cmonkey2/wiki/Database-schema">https://github.com/baliga-lab/cmonkey2/wiki/Database-schema</a>&gt;`_.</p>
+</div>
+<div class="section" id="user-supplied-cmonkey2-expression-matrix">
+<h2>User supplied cMonkey<sub>2</sub> expression matrix<a class="headerlink" href="#user-supplied-cmonkey2-expression-matrix" title="Permalink to this headline">¶</a></h2>
+<p>The cMonkey<sub>2</sub> expression data matrix is usually filtered based on differential expression, most variant genes, or expression above a threshold. The reason for this step is that genes with little variance or low expression are not likely to yield much information.</p>
+<p>User supplied expression data (microarray or RNAseq) as a tab separated value (TSV) file that has been properly normalized. The expression data should be standardized (mean subtracted and divided by the standard deviation to turn each expression value into a Z score). The header for the expression data is expected to be without the leading tab.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="23%" />
+<col width="23%" />
+<col width="31%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Gene</th>
+<th class="head">Cond_1</th>
+<th class="head">…</th>
+<th class="head">Cond_N</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Gene_1</td>
+<td>Z[1,1]</td>
+<td>…</td>
+<td>Z[1,N]</td>
+</tr>
+<tr class="row-odd"><td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+</tr>
+<tr class="row-even"><td>Gene_M</td>
+<td>Z[M,1]</td>
+<td>Z[M,N-1]</td>
+<td>Z[M,N]</td>
+</tr>
+</tbody>
+</table>
+<p>The expression data matrix is specified in the <code class="docutils literal"><span class="pre">sygnal_config.json</span></code> using the <code class="docutils literal"><span class="pre">&quot;ratios-file&quot;</span></code> option.</p>
+<div class="section" id="complete-user-supplied-expression-matrix">
+<h3>Complete user supplied expression matrix<a class="headerlink" href="#complete-user-supplied-expression-matrix" title="Permalink to this headline">¶</a></h3>
+<p>This is the pre-filtered version of the expression data matrix with all genes. This allows correlation of all putative TF regulators versus bicluster eigengenes even if they were filtered out from the expression data matrix used for cMonkey&lt;sub&gt;2&lt;/sub&gt; biclustering.</p>
+<p>User supplied expression data (microarray or RNAseq) as a comma separated value (CSV) file that has been properly normalized. The expression data is not standardized. The header for the expression data is not offset .</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="23%" />
+<col width="23%" />
+<col width="31%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Gene</th>
+<th class="head">Cond_1</th>
+<th class="head">…</th>
+<th class="head">Cond_N</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Gene_1</td>
+<td>Z[1,1]</td>
+<td>…</td>
+<td>Z[1,N]</td>
+</tr>
+<tr class="row-odd"><td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+</tr>
+<tr class="row-even"><td>Gene_M</td>
+<td>Z[M,1]</td>
+<td>Z[M,N-1]</td>
+<td>Z[M,N]</td>
+</tr>
+</tbody>
+</table>
+<p>The complete expression data matrix is specified in the <code class="docutils literal"><span class="pre">sygnal_config.json</span></code> using the <code class="docutils literal"><span class="pre">&quot;all-ratios-file&quot;</span></code> option.</p>
+</div>
+<div class="section" id="gene-id-thesaurus">
+<h3>Gene ID thesaurus<a class="headerlink" href="#gene-id-thesaurus" title="Permalink to this headline">¶</a></h3>
+<p>The gene IDs used in cMonkey&lt;sub&gt;2&lt;/sub&gt; and SYGNAL can be different than the pre-computed databases of gene-gene associations, TF- and miRNA-target gene interactions, etc. This is facilitated through a gene ID thesaurus which maps the gene expression matrix gene IDs to alternative gene IDs. This thesaurus is generated from a comma separated values (CSV) file with the following format:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="24%" />
+<col width="76%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">ExprIDs</th>
+<th class="head">Mappings</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Gene_1</td>
+<td>Gene_1;Alt_1;…;Alt_N</td>
+</tr>
+<tr class="row-odd"><td>…</td>
+<td>…;Alt_1;…;Alt_N</td>
+</tr>
+<tr class="row-even"><td colspan="2">Gene_M  Gene_M;Alt_1;…;Alt_N</td>
+</tr>
+</tbody>
+</table>
+<p>The thesaurus file is specified in the <code class="docutils literal"><span class="pre">sygnal_config.json</span></code> using the <code class="docutils literal"><span class="pre">&quot;synonyms-file&quot;</span></code> option.</p>
+</div>
+<div class="section" id="tf-target-gene-regulatory-interactions">
+<h3>TF-target gene regulatory interactions<a class="headerlink" href="#tf-target-gene-regulatory-interactions" title="Permalink to this headline">¶</a></h3>
+<p>To discover putative TF regulatory interactions requires a database of TF-target gene interactions. We provide a pre-computed version of TF-target gene interactions from the <a class="reference external" href="http://tfbsdb.systemsbiology.net/">TFBS_DB</a>. For use in SYGNAL the TF-target gene regulatory interactions should be put into the following JSON format:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>{&quot;TF_ID_1&quot;: [&quot;Gene_1&quot;, ..., &quot;Gene_M&quot;], ..., &quot;TF_ID_N&quot;: [&quot;Gene_1&quot;, ..., &quot;Gene_M&quot;]}
+</pre></div>
+</div>
+<p>The TF-target gene interaction files are specified in the <code class="docutils literal"><span class="pre">sygnal_config.json</span></code> using the <code class="docutils literal"><span class="pre">&quot;tfbsdb&quot;</span></code> option.</p>
+</div>
+<div class="section" id="tf-family-information">
+<h3>TF family information<a class="headerlink" href="#tf-family-information" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="mirna-target-gene-regulatory-interactions">
+<h3>miRNA-target gene regulatory interactions<a class="headerlink" href="#mirna-target-gene-regulatory-interactions" title="Permalink to this headline">¶</a></h3>
+<p>To discover putative miRNA regulatory interactions requires a database of miRNA-target gene interactions. We utilize two different pre-computed miRNA-target gene interaction databases:  <a class="reference external" href="https://genie.weizmann.ac.il/pubs/mir07/mir07_data.html">PITA</a> and <a class="reference external" href="http://www.targetscan.org/vert_71/">TargetScan</a>. For use in SYGNAL the miNRA-target gene regulatory interactions should be put into the following JSON format:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>{&quot;miRNA_ID_1&quot;: [&quot;Gene_1&quot;, ..., &quot;Gene_M&quot;], ..., &quot;miRNA_ID_N&quot;: [&quot;Gene_1&quot;, ..., &quot;Gene_M&quot;]}
+</pre></div>
+</div>
+<p>We have started using miRBase <cite>MIMAT</cite> miRNA IDs due to the constant flux in miRNA names. The miRNA-target gene interaction files are specified in the <cite>sygnal_config.json</cite> using the <cite>“pita”</cite> and <cite>“targetscan”</cite> options.</p>
+</div>
+<div class="section" id="promoter-and-3-utr-sequences-for-organism-of-study">
+<h3>Promoter and 3’ UTR sequences for organism of study<a class="headerlink" href="#promoter-and-3-utr-sequences-for-organism-of-study" title="Permalink to this headline">¶</a></h3>
+<p>In addition to enrichment with pre-computed databases SYGNAL also searches promoter and 3’ UTR sequences for enriched TF or miRNA binding sites. The sequences are stored as comma separated value (CSV) files in the following format:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>Gene_1,Seq_1
+...,...
+Gene_M,Seq_M
+</pre></div>
+</div>
+<p>The sequence files are specified in the <code class="docutils literal"><span class="pre">sygnal_config.json</span></code> using the <code class="docutils literal"><span class="pre">&quot;promoterSeq&quot;</span></code> and <code class="docutils literal"><span class="pre">&quot;p3utrSeq&quot;</span></code> options.</p>
+</div>
+<div class="section" id="background-sequence-information-for-motif-callers">
+<h3>Background sequence information for motif callers<a class="headerlink" href="#background-sequence-information-for-motif-callers" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="typical-run-of-sygnal">
+<h2>Typical run of SYGNAL<a class="headerlink" href="#typical-run-of-sygnal" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="typical-output-from-running-sygnal">
+<h2>Typical output from running SYGNAL<a class="headerlink" href="#typical-output-from-running-sygnal" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">sygnal</a></h1>
+
+
+
+<p class="blurb">SYstems Genetic Network AnaLysis Pipeline</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=baliga-lab&repo=sygnal&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="preparing.html">Preparing for SYGNAL run</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Running SYGNAL</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#command-line-parameters">Command line parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#input-files">Input files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cmonkey2-output-database">cMonkey<sub>2</sub> output database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#user-supplied-cmonkey2-expression-matrix">User supplied cMonkey<sub>2</sub> expression matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#typical-run-of-sygnal">Typical run of SYGNAL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#typical-output-from-running-sygnal">Typical output from running SYGNAL</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="preparing.html" title="previous chapter">Preparing for SYGNAL run</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Baliga Lab, Institute for Systems Biology.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/running.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/baliga-lab/sygnal" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>
