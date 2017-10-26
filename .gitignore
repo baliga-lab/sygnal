@@ -13,3 +13,5 @@ extras
 clpMerge_21nov.csv
 .coverage
 test-reports
+_build
+coverage.xml
