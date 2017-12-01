@@ -3,6 +3,10 @@ We developed the SYstems Genetic Network AnaLysis (SYGNAL) pipeline to integrate
 
 The SYGNAL pipeline is designed to be cloned into a completed [cMonkey<sub>2</sub>](https://github.com/baliga-lab/cmonkey2) run directory. It will then run the SYGNAL pipeline using the cMonkey<sub>2</sub> result database and put all the results into 'sygnal/output' directory, which it will create if not already present. There is fairly through checkpointing as the full SYGNAL pipeline can take some time to run.
 
+### Documentation
+
+Documentation is available at https://baliga-lab.github.io/sygnal/
+
 ### Dependencies
 * MEME (http://meme-suite.org/doc/download.html?man_type=web)
 * WEEDER (https://github.com/baliga-lab/weeder_patched)
