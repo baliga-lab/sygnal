@@ -572,12 +572,18 @@ def compute_upstream_motifs_meme(cfg, c1):
                                     'revcomp': bool(cfg['meme']['upstream']['revcomp'])})
 
 
+            num_cores = int(cfg['cores'])
             print('Running MEME on Upstream sequences...')
-            print('There are ',cfg['cores'],' CPUs available.')
-            pool = Pool(processes=int(cfg['cores']))
-            pool.map(run_meme, run_args)
-            pool.close()
-            pool.join()
+            print('There are %d CPUs available.' % num_cores)
+            if num_cores == 1:
+                print("running MEME in single process mode")
+                for run_arg in run_args:
+                    run_meme(run_arg)
+            else:
+                pool = Pool(processes=num_cores)
+                pool.map(run_meme, run_args)
+                pool.close()
+                pool.join()
 
             # Dump weeder results as a pickle file
             with open(pkl_path, 'wb') as outfile:
@@ -630,12 +636,17 @@ def __compute_motifs_weeder(cfg, pkl_path, biclusters, add_result, bicluster_seq
         # Set to run Weeder on 'medium' setting which means 6bp, 8bp and 10bp motifs
         g_weeder_args = mgr.dict(args_dict)
 
+        num_cores = int(cfg['cores'])
         print('Running Weeder...')
-        print('There are ', cfg['cores'],' CPUs available.')
-        pool = Pool(processes=int(cfg['cores']))
-        pool.map(run_weeder, run_args)
-        pool.close()
-        pool.join()
+        print('There are %d CPUs available.' % num_cores)
+        if num_cores == 1:
+            for run_arg in run_args:
+                run_weeder(run_arg)
+        else:
+            pool = Pool(processes=num_cores)
+            pool.map(run_weeder, run_args)
+            pool.close()
+            pool.join()
 
         # Dump weeder results as a pickle file
         with open(pkl_path,'wb') as outfile:
@@ -774,10 +785,17 @@ def __compute_enrichment(c1, name,  pkl_path, pred_path, pred_pkl_path):
                                                                __bicluster_genes(c1), mgr)
         print('%s prediction has %d TFs.' % (name, len(g_pred_dict)))
         print('Running %s enrichment analyses...' % name)
-        pool = Pool(processes=int(cfg['cores']))
-        result = pool.map(cluster_hypergeo, c1.biclusters.keys())
-        pool.close()
-        pool.join()
+
+        num_cores = int(cfg['cores'])
+        pool = Pool(processes=num_cores)
+        if num_cores == 1:
+            result = []
+            for key in c1.biclusters.keys():
+                result.append(cluster_hypergeo(key))
+        else:
+            result = pool.map(cluster_hypergeo, c1.biclusters.keys())
+            pool.close()
+            pool.join()
 
         with open(pkl_path, 'wb') as pklFile:
             pickle.dump(result, pklFile)
@@ -1083,10 +1101,15 @@ def __tomtom_upstream_motifs(cfg):
 
             # Run TomTom
             print('Comparing Upstream motifs against databases...')
-            pool = Pool(processes=int(cfg['cores']))
-            res1 = pool.map(run_tomtom, [i for i in range(len(target_pssms_in))])
-            pool.close()
-            pool.join()
+            num_cores = int(cfg['cores'])
+            if num_cores == 1:
+                for i in range(len(target_pssms_in)):
+                    run_tomtom(i)
+            else:
+                pool = Pool(processes=num_cores)
+                pool.map(run_tomtom, [i for i in range(len(target_pssms_in))])
+                pool.close()
+                pool.join()
 
             print('Reading in Tomtom run...')
             output_lines = []
@@ -1310,13 +1333,17 @@ def __get_permuted_pvalues_for_upstream_meme_motifs(cfg, c1):
                              randPssmsDict[clustSize].values(), i)
 
         # Run this using all cores available
-        cpus = int(cfg['cores'])
-        print('There are', cpus,'CPUs available.')
+        num_cores = int(cfg['cores'])
+        print('There are %d CPUs available.' % num_cores)
         print('Running TOMTOM to compare PSSMs...')
-        pool = Pool(processes=cpus)
-        pool.map(run_tomtom, range(len(pssms)))
-        pool.close()
-        pool.join()
+        if num_cores == 1:
+            for i in range(len(pssms)):
+                run_tomtom(i)
+        else:
+            pool = Pool(processes=num_cores)
+            pool.map(run_tomtom, range(len(pssms)))
+            pool.close()
+            pool.join()
 
         print('Reading in Tomtom run...')
         for run in range(len(pssms)):
@@ -1480,12 +1507,16 @@ def __make_replication_pvalues(cfg, c1):
     if len(run_sets) > 0:
         print('Run replication..')
         # Run this using all cores available
-        cpus = int(cfg['cores'])
-        print('There are', cpus, 'CPUs available.')
-        pool = Pool(processes=cpus)
-        pool.map(run_replication, run_sets)
-        pool.close()
-        pool.join()
+        num_cores = int(cfg['cores'])
+        print('There are %d CPUs available.' % num_cores)
+        if num_cores == 1:
+            for run_set in run_sets:
+                run_replication(run_set)
+        else:
+            pool = Pool(processes=num_cores)
+            pool.map(run_replication, run_sets)
+            pool.close()
+            pool.join()
 
 
 def __read_replication_pvalues(cfg, c1):
