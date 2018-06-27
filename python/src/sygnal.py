@@ -143,6 +143,124 @@ def run_meme(runarg):
          g_meme_args['max_motif_width'], g_meme_args['revcomp'])
 
 
+def parse_weeder_output(seqfile, size, revcomp):
+    wee_path = "%s.wee" % str(seqfile)
+    PSSMs = []
+    with open(wee_path, 'r') as output:
+        outLines = [line for line in output.readlines() if line.strip()]
+        hitBp = {}
+        # Get top hit of 6bp look for "1)"
+        while 1:
+            if len(outLines)<=1:
+                break
+            outLine = outLines.pop(0)
+            if not outLine.find('1) ') == -1:
+                break
+        hitBp[6] = outLine.strip().split(' ')[1:]
+
+        # Scroll to where the 8bp reads will be
+        while 1:
+            if len(outLines)<=1:
+                break
+            outLine = outLines.pop(0)
+            if not outLine.find('Searching for motifs of length 8') == -1:
+                break
+
+        # Get top hit of 8bp look for "1)"
+        while 1:
+            if len(outLines)<=1:
+                break
+            outLine = outLines.pop(0)
+            if not outLine.find('1) ') == -1:
+                break
+        hitBp[8] = outLine.strip().split(' ')[1:]
+
+        if size=='medium':
+            # Scroll to where the 10bp reads wll be
+            while 1:
+                if len(outLines)<=1:
+                    break
+                outLine = outLines.pop(0)
+                if not outLine.find('Searching for motifs of length 10') == -1:
+                    break
+
+            # Get top hit of 10bp look for "1)"
+            while 1:
+                if len(outLines)<=1:
+                    break
+                outLine = outLines.pop(0)
+                if not outLine.find('1) ') == -1:
+                    break
+            hitBp[10] = outLine.strip().split(' ')[1:]
+
+        # Scroll to where the 10bp reads will be
+        while 1:
+            if len(outLines)<=1:
+                break
+            outLine = outLines.pop(0)
+            if not outLine.find('Your sequences:') == -1:
+                break
+
+        # Get into the highest ranking motifs
+        seqDict = {}
+        while 1:
+            if len(outLines)<=1:
+                break
+            outLine = outLines.pop(0)
+            if not outLine.find('**** MY ADVICE ****') == -1:
+                break
+            splitUp = outLine.strip().split(' ')
+            seqDict[splitUp[1]] = splitUp[3].lstrip('>')
+
+        # Get into the highest ranking motifs
+        while 1:
+            if len(outLines)<=1:
+                break
+            outLine = outLines.pop(0)
+            if not outLine.find('Interesting motifs (highest-ranking)') == -1:
+                break
+        motif_id = 1
+        bicluster_id = int(os.path.basename(seqfile).split('_')[1].split('.')[0])
+        while 1:
+            if len(outLines)<=1:
+                break
+
+            if revcomp:
+                name = outLines.pop(0).strip() # Get match
+                name += '_'+outLines.pop(0).strip()
+            else:
+                name = outLines.pop(0).strip() # Get match
+
+            if not name.find('(not highest-ranking)') == -1:
+                break
+
+            # Get redundant motifs
+            outLines.pop(0)
+            red_motifs = [i for i in outLines.pop(0).strip().split(' ') if not i=='-']
+            outLines.pop(0)
+            outLines.pop(0)
+            line = outLines.pop(0)
+            instances = []
+            while line.find('Frequency Matrix') == -1:
+                splitUp = [i for i in line.strip().split(' ') if i]
+                instances.append({'gene':seqDict[splitUp[0]], 'strand':splitUp[1], 'site':splitUp[2], 'start':splitUp[3], 'match':splitUp[4].lstrip('(').rstrip(')') })
+                line = outLines.pop(0)
+            # Read in Frequency Matrix
+            outLines.pop(0)
+            outLines.pop(0)
+            matrix = []
+            col = outLines.pop(0)
+            while col.find('======') == -1:
+                nums = [float(i.strip()) for i in col.strip().split('\t')[1].split(' ') if i]
+                colsum = sum(nums)
+                matrix += [[ nums[0] / colsum, nums[1] / colsum, nums[2] / colsum, nums[3] / colsum]]
+                col = outLines.pop(0)
+            PSSMs += [PSSM('%d_motif%d_weeder' % (bicluster_id, motif_id),
+                           len(instances), hitBp[len(matrix)][1], matrix, red_motifs, 'weeder')]
+            motif_id += 1
+    return PSSMs
+
+
 def weeder(bicluster, seqfile, bgfile, size, enriched, revcomp):
     """
     Run weeder and parse its output
@@ -156,131 +274,15 @@ def weeder(bicluster, seqfile, bgfile, size, enriched, revcomp):
     if revcomp:
         weeder_args += ' S'
 
-    try:
-        if os.path.exists(cfg['weeder']['freqfiles-dir']):
-            weeder_args += ' F%s' % cfg['weeder']['freqfiles-dir']
-    except:
-        pass
+    if os.path.exists(cfg['weeder']['freqfiles-dir']):
+        weeder_args += ' F%s' % cfg['weeder']['freqfiles-dir']
 
-    errout = open(cfg['tmpdir']+'/weeder/stderr.out','w')
-    weeder_proc = Popen("weederlauncher %s" % weeder_args, shell=True, stdout=PIPE, stderr=errout)
-    output = weeder_proc.communicate()
-
-    # Now parse output from weeder
-    PSSMs = []
-    output = open(str(seqfile)+'.wee','r')
-    outLines = [line for line in output.readlines() if line.strip()]
-    hitBp = {}
-    # Get top hit of 6bp look for "1)"
-    while 1:
-        if len(outLines)<=1:
-            break
-        outLine = outLines.pop(0)
-        if not outLine.find('1) ') == -1:
-            break
-    hitBp[6] = outLine.strip().split(' ')[1:]
-
-    # Scroll to where the 8bp reads will be
-    while 1:
-        if len(outLines)<=1:
-            break
-        outLine = outLines.pop(0)
-        if not outLine.find('Searching for motifs of length 8') == -1:
-            break
-
-    # Get top hit of 8bp look for "1)"
-    while 1:
-        if len(outLines)<=1:
-            break
-        outLine = outLines.pop(0)
-        if not outLine.find('1) ') == -1:
-            break
-    hitBp[8] = outLine.strip().split(' ')[1:]
-
-    if size=='medium':
-        # Scroll to where the 10bp reads wll be
-        while 1:
-            if len(outLines)<=1:
-                break
-            outLine = outLines.pop(0)
-            if not outLine.find('Searching for motifs of length 10') == -1:
-                break
-
-        # Get top hit of 10bp look for "1)"
-        while 1:
-            if len(outLines)<=1:
-                break
-            outLine = outLines.pop(0)
-            if not outLine.find('1) ') == -1:
-                break
-        hitBp[10] = outLine.strip().split(' ')[1:]
-
-    # Scroll to where the 10bp reads will be
-    while 1:
-        if len(outLines)<=1:
-            break
-        outLine = outLines.pop(0)
-        if not outLine.find('Your sequences:') == -1:
-            break
-
-    # Get into the highest ranking motifs
-    seqDict = {}
-    while 1:
-        if len(outLines)<=1:
-            break
-        outLine = outLines.pop(0)
-        if not outLine.find('**** MY ADVICE ****') == -1:
-            break
-        splitUp = outLine.strip().split(' ')
-        seqDict[splitUp[1]] = splitUp[3].lstrip('>')
-
-    # Get into the highest ranking motifs
-    while 1:
-        if len(outLines)<=1:
-            break
-        outLine = outLines.pop(0)
-        if not outLine.find('Interesting motifs (highest-ranking)') == -1:
-            break
-    motif_id = 1
-    bicluster_id = int(os.path.basename(seqfile).split('_')[1].split('.')[0])
-    while 1:
-        if len(outLines)<=1:
-            break
-
-        if revcomp:
-            name = outLines.pop(0).strip() # Get match
-            name += '_'+outLines.pop(0).strip()
-        else:
-            name = outLines.pop(0).strip() # Get match
-
-        if not name.find('(not highest-ranking)') == -1:
-            break
-
-        # Get redundant motifs
-        outLines.pop(0)
-        red_motifs = [i for i in outLines.pop(0).strip().split(' ') if not i=='-']
-        outLines.pop(0)
-        outLines.pop(0)
-        line = outLines.pop(0)
-        instances = []
-        while line.find('Frequency Matrix') == -1:
-            splitUp = [i for i in line.strip().split(' ') if i]
-            instances.append({'gene':seqDict[splitUp[0]], 'strand':splitUp[1], 'site':splitUp[2], 'start':splitUp[3], 'match':splitUp[4].lstrip('(').rstrip(')') })
-            line = outLines.pop(0)
-        # Read in Frequency Matrix
-        outLines.pop(0)
-        outLines.pop(0)
-        matrix = []
-        col = outLines.pop(0)
-        while col.find('======') == -1:
-            nums = [float(i.strip()) for i in col.strip().split('\t')[1].split(' ') if i]
-            colsum = sum(nums)
-            matrix += [[ nums[0] / colsum, nums[1] / colsum, nums[2] / colsum, nums[3] / colsum]]
-            col = outLines.pop(0)
-        PSSMs += [PSSM('%d_motif%d_weeder' % (bicluster_id, motif_id),
-                       len(instances), hitBp[len(matrix)][1], matrix, red_motifs, 'weeder')]
-        motif_id += 1
-    g_weeder_results[bicluster] = PSSMs
+    with open(cfg['tmpdir']+'/weeder/stderr.out','w') as errout:
+        weeder_proc = Popen("weederlauncher %s" % weeder_args, shell=True,
+                            stdout=PIPE, stderr=errout)
+        output = weeder_proc.communicate()
+        PSSMs = parse_weeder_output(seqfile, size, revcomp)
+        g_weeder_results[bicluster] = PSSMs
 
 
 def run_weeder(run_arg):
@@ -881,7 +883,7 @@ def compute_additional_info(cfg, mirna_ids, gene_conv):
         #   F. 3' UTR TargetScan (Set Enrichment)                      #
         ################################################################
 
-        compute_upstream_motifs_meme(cfg, c1)
+        #compute_upstream_motifs_meme(cfg, c1)
         compute_upstream_motifs_weeder(cfg, c1)
         compute_3pUTR_weeder(cfg, c1)
         compute_tfbsdb_enrichment(cfg, c1)
